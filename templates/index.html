@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PricePulse — Premium Multi-Platform Price Tracker</title>
+    <meta name="description" content="Track product prices across Amazon, Flipkart, and Snapdeal. Get instant alerts on price drops and stock changes.">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-base: #080c14;
+            --bg-surface: rgba(17, 24, 39, 0.7);
+            --bg-surface-hover: rgba(31, 41, 55, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --color-text: #f3f4f6;
+            --color-muted: #9ca3af;
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.4);
+            --accent-green: #10b981;
+            --accent-green-glow: rgba(16, 185, 129, 0.2);
+            --accent-red: #f43f5e;
+            --accent-red-glow: rgba(244, 63, 94, 0.2);
+            --accent-blue: #0ea5e9;
+            --accent-amber: #f59e0b;
+            --accent-amber-glow: rgba(245, 158, 11, 0.15);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--color-text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.03) 0%, transparent 60%);
+            background-attachment: fixed;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* Container Layout */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Header */
+        /* ═══════════════════════════════════════ */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            font-size: 1.75rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px var(--primary-glow));
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-section .logo-subtitle {
+            font-size: 0.7rem;
+            color: var(--color-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-left: 0.75rem;
+            padding-left: 0.75rem;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .monitor-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-surface);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .status-badge.running {
+            background: var(--accent-green-glow);
+            color: var(--accent-green);
+        }
+
+        .status-badge.stopped {
+            background: var(--accent-red-glow);
+            color: var(--accent-red);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-badge.running .status-dot {
+            background-color: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-badge.stopped .status-dot {
+            background-color: var(--accent-red);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Buttons */
+        /* ═══════════════════════════════════════ */
+        .btn {
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--accent-red-glow);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-red);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--color-muted);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-text);
+        }
+
+        .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.75rem; border-radius: 6px; }
+        .btn-round { border-radius: 50px; }
+
+        /* ═══════════════════════════════════════ */
+        /* Stat Cards */
+        /* ═══════════════════════════════════════ */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-row { grid-template-columns: 1fr; }
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(12px);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            border-radius: 14px 14px 0 0;
+        }
+
+        .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--primary), var(--accent-blue)); }
+        .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-green), #34d399); }
+        .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-amber), #fbbf24); }
+
+        .stat-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .stat-card:nth-child(1) .stat-icon { background: rgba(139, 92, 246, 0.15); color: var(--primary); }
+        .stat-card:nth-child(2) .stat-icon { background: var(--accent-green-glow); color: var(--accent-green); }
+        .stat-card:nth-child(3) .stat-icon { background: var(--accent-amber-glow); color: var(--accent-amber); }
+
+        .stat-info { flex: 1; }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff, var(--color-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--color-muted);
+            font-weight: 500;
+            margin-top: 0.15rem;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Dashboard Grid */
+        /* ═══════════════════════════════════════ */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 380px 1fr; }
+            .full-width-on-mobile { grid-column: span 2; }
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px) saturate(180%);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+
+        .glass-card:hover { border-color: rgba(255, 255, 255, 0.12); }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .card-title i { color: var(--primary); }
+
+        /* ═══════════════════════════════════════ */
+        /* Form Styling */
+        /* ═══════════════════════════════════════ */
+        .form-group { margin-bottom: 1rem; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            color: var(--color-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--color-text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .form-control::placeholder { color: rgba(156, 163, 175, 0.5); }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em;
+            padding-right: 2.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        /* Platform icons in form */
+        .platform-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--color-muted);
+            padding: 0.5rem 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .platform-hint .platform-icons { display: flex; gap: 0.5rem; }
+
+        .platform-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .chip-amazon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .chip-flipkart { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .chip-snapdeal { background: rgba(225, 29, 72, 0.15); color: #f43f5e; }
+
+        /* ═══════════════════════════════════════ */
+        /* Terminal Console */
+        /* ═══════════════════════════════════════ */
+        .terminal-box {
+            font-family: 'Fira Code', monospace;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            height: 180px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: #34d399;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        .terminal-box::-webkit-scrollbar { width: 6px; }
+        .terminal-box::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        .terminal-box::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+
+        .terminal-line { margin-bottom: 0.15rem; word-break: break-all; }
+        .terminal-line.error { color: var(--accent-red); }
+        .terminal-line.alert { color: var(--accent-blue); }
+
+        /* ═══════════════════════════════════════ */
+        /* Product Inventory */
+        /* ═══════════════════════════════════════ */
+        .search-bar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+        .search-input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-muted);
+        }
+
+        .search-control { padding-left: 2.5rem; }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1200px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            position: relative;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            animation: cardFadeIn 0.4s ease-out;
+        }
+
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .product-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .product-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-height: 2.8rem;
+        }
+
+        .product-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .badge-snapdeal { background: rgba(225, 29, 72, 0.15); color: #f43f5e; }
+        .badge-amazon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .badge-flipkart { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .badge-other { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+
+        .product-details { margin-bottom: 1rem; }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .price-label { font-size: 0.8rem; color: var(--color-muted); }
+
+        .price-value { font-weight: 700; font-size: 1.2rem; color: #ffffff; }
+
+        .price-value.alert-match {
+            color: var(--accent-green);
+            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .target-price-value { font-weight: 500; font-size: 0.95rem; color: var(--color-muted); }
+
+        .product-meta {
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-stock {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+        }
+
+        .product-stock.in-stock { background: var(--accent-green-glow); color: var(--accent-green); }
+        .product-stock.out-of-stock { background: var(--accent-red-glow); color: var(--accent-red); }
+
+        .product-updated {
+            font-size: 0.65rem;
+            color: var(--color-muted);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .product-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.75rem;
+            margin-top: auto;
+        }
+
+        .product-card-actions .btn { flex-grow: 1; padding: 0.4rem; font-size: 0.8rem; }
+
+        .product-card-actions .btn-delete {
+            flex-grow: 0;
+            aspect-ratio: 1;
+            width: 32px;
+            padding: 0;
+            background: rgba(244, 63, 94, 0.1);
+            color: var(--accent-red);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+        }
+
+        .product-card-actions .btn-delete:hover {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Empty State */
+        /* ═══════════════════════════════════════ */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem 1.5rem;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            color: var(--color-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: rgba(139, 92, 246, 0.3);
+            margin-bottom: 1rem;
+            animation: emptyBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes emptyBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.05); }
+        }
+
+        .empty-state h3 { color: #ffffff; margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .empty-state p { max-width: 350px; margin: 0 auto; font-size: 0.9rem; line-height: 1.5; }
+
+        /* ═══════════════════════════════════════ */
+        /* Chart */
+        /* ═══════════════════════════════════════ */
+        .chart-container-inner { position: relative; height: 300px; width: 100%; }
+
+        .chart-placeholder {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--color-muted);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px dashed var(--border-color);
+        }
+
+        .chart-placeholder i {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+            opacity: 0.6;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Toast Notifications */
+        /* ═══════════════════════════════════════ */
+        .toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            max-width: 380px;
+            pointer-events: all;
+            animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: var(--transition);
+        }
+
+        .toast.hiding {
+            animation: toastSlideOut 0.3s ease-in forwards;
+        }
+
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes toastSlideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(100%); }
+        }
+
+        .toast-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+
+        .toast.success .toast-icon { background: var(--accent-green-glow); color: var(--accent-green); }
+        .toast.success { border-left: 3px solid var(--accent-green); }
+
+        .toast.alert .toast-icon { background: var(--accent-amber-glow); color: var(--accent-amber); }
+        .toast.alert { border-left: 3px solid var(--accent-amber); }
+
+        .toast.error .toast-icon { background: var(--accent-red-glow); color: var(--accent-red); }
+        .toast.error { border-left: 3px solid var(--accent-red); }
+
+        .toast.info .toast-icon { background: rgba(14, 165, 233, 0.15); color: var(--accent-blue); }
+        .toast.info { border-left: 3px solid var(--accent-blue); }
+
+        .toast-body { flex: 1; }
+        .toast-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.15rem; }
+        .toast-message { font-size: 0.78rem; color: var(--color-muted); line-height: 1.4; }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--color-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 0.25rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+
+        .toast-close:hover { opacity: 1; }
+
+        /* ═══════════════════════════════════════ */
+        /* WhatsApp Settings Panel */
+        /* ═══════════════════════════════════════ */
+        .wa-settings-card {
+            border-top: 2px solid #25d366;
+        }
+
+        .wa-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .wa-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .wa-header-left i.fa-whatsapp {
+            color: #25d366;
+            font-size: 1.1rem;
+        }
+
+        .wa-toggle-icon {
+            color: var(--color-muted);
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .wa-toggle-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .wa-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            padding-top: 0;
+        }
+
+        .wa-body.open {
+            max-height: 800px;
+            padding-top: 1rem;
+        }
+
+        /* Toggle Switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .toggle-label .wa-enabled-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-red);
+        }
+
+        .toggle-label .wa-enabled-dot.active {
+            background: #25d366;
+            box-shadow: 0 0 6px rgba(37, 211, 102, 0.5);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #25d366;
+            border-color: #25d366;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        .wa-setup-hint {
+            background: rgba(37, 211, 102, 0.08);
+            border: 1px solid rgba(37, 211, 102, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: var(--color-muted);
+        }
+
+        .wa-setup-hint strong {
+            color: #25d366;
+        }
+
+        .wa-setup-hint ol {
+            margin: 0.5rem 0 0 1.25rem;
+            padding: 0;
+        }
+
+        .wa-setup-hint code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.15rem 0.35rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+        }
+
+        .btn-whatsapp {
+            background: #25d366;
+            color: white;
+            border: none;
+        }
+
+        .btn-whatsapp:hover {
+            background: #20bd5a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .wa-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .wa-actions .btn {
+            flex: 1;
+        }
+
+        .wa-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+        }
+
+        .wa-status-badge.connected {
+            background: rgba(37, 211, 102, 0.15);
+            color: #25d366;
+        }
+
+        .wa-status-badge.disconnected {
+            background: var(--accent-red-glow);
+            color: var(--accent-red);
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Responsive */
+        /* ═══════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .header-right { width: 100%; justify-content: flex-end; }
+            .logo-section .logo-subtitle { display: none; }
+            .form-row { grid-template-columns: 1fr; }
+            .search-bar-container { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo-section">
+                <i class="fa-solid fa-chart-line logo-icon"></i>
+                <h1>PricePulse</h1>
+                <span class="logo-subtitle">Multi-Platform Tracker</span>
+            </div>
+            <div class="header-right">
+                <div class="monitor-controls">
+                    <div id="monitor-status" class="status-badge stopped">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Stopped</span>
+                    </div>
+                    <button id="btn-toggle-monitor" class="btn btn-sm btn-round btn-primary">
+                        <i class="fa-solid fa-play"></i> Start Monitor
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stat Cards -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-box-open"></i></div>
+                <div class="stat-info">
+                    <div id="stat-total" class="stat-value">0</div>
+                    <div class="stat-label">Products Tracked</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                <div class="stat-info">
+                    <div id="stat-drops" class="stat-value">0</div>
+                    <div class="stat-label">Price Drops</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <div id="stat-instock" class="stat-value">0</div>
+                    <div class="stat-label">In Stock</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="dashboard-grid">
+            <!-- Left: Add Product + Console -->
+            <div class="glass-card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Add Product Form -->
+                <div>
+                    <h2 class="card-title"><i class="fa-solid fa-plus-circle"></i> Track Product</h2>
+                    <form id="add-product-form">
+                        <div class="form-group">
+                            <label for="prod-name">Product Name</label>
+                            <input type="text" id="prod-name" class="form-control" placeholder="e.g., Sony WH-1000XM5 Headphones" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="prod-url">Product URL</label>
+                            <input type="url" id="prod-url" class="form-control" placeholder="Paste Amazon, Flipkart, or Snapdeal link" required autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="prod-price">Target Price (₹)</label>
+                                <input type="number" step="0.01" id="prod-price" class="form-control" placeholder="e.g., 1500" required autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="prod-platform">Platform</label>
+                                <select id="prod-platform" class="form-control">
+                                    <option value="auto">Auto-Detect</option>
+                                    <option value="amazon">Amazon</option>
+                                    <option value="flipkart">Flipkart</option>
+                                    <option value="snapdeal">Snapdeal</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="platform-hint">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>Supported:</span>
+                            <div class="platform-icons">
+                                <span class="platform-chip chip-amazon"><i class="fa-brands fa-amazon"></i> Amazon</span>
+                                <span class="platform-chip chip-flipkart"><i class="fa-solid fa-f"></i> Flipkart</span>
+                                <span class="platform-chip chip-snapdeal"><i class="fa-solid fa-s"></i> Snapdeal</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                            <i class="fa-solid fa-circle-plus"></i> Add to Tracker
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Console Logs -->
+                <div>
+                    <h2 class="card-title" style="margin-bottom: 0.75rem;"><i class="fa-solid fa-terminal"></i> Activity Log</h2>
+                    <div id="terminal-box" class="terminal-box">
+                        <div class="terminal-line alert">System initialized. Waiting for commands...</div>
+                    </div>
+                </div>
+
+                <!-- WhatsApp Notification Settings -->
+                <div class="wa-settings-card">
+                    <div class="wa-header" onclick="toggleWaPanel()">
+                        <div class="wa-header-left">
+                            <i class="fa-brands fa-whatsapp"></i>
+                            <span style="font-weight: 600; font-size: 0.95rem;">WhatsApp Alerts</span>
+                            <span id="wa-status-badge" class="wa-status-badge disconnected">
+                                <i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off
+                            </span>
+                        </div>
+                        <i id="wa-toggle-icon" class="fa-solid fa-chevron-down wa-toggle-icon"></i>
+                    </div>
+                    <div id="wa-body" class="wa-body">
+                        <!-- Enable Toggle -->
+                        <div class="toggle-row">
+                            <div class="toggle-label">
+                                <span id="wa-enabled-dot" class="wa-enabled-dot"></span>
+                                Enable Notifications
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="wa-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Setup Instructions -->
+                        <div class="wa-setup-hint">
+                            <strong><i class="fa-solid fa-circle-info"></i> Setup (Free via Twilio):</strong>
+                            <ol>
+                                <li>Sign up at <code>twilio.com</code> (free trial)</li>
+                                <li>Go to <strong>Messaging → Try WhatsApp</strong></li>
+                                <li>Send <code>join &lt;sandbox-code&gt;</code> from your WhatsApp to the Twilio number</li>
+                                <li>Copy your <strong>Account SID</strong> and <strong>Auth Token</strong> below</li>
+                            </ol>
+                        </div>
+
+                        <!-- Credentials -->
+                        <div class="form-group">
+                            <label for="wa-sid">Account SID</label>
+                            <input type="text" id="wa-sid" class="form-control" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="wa-token">Auth Token</label>
+                            <input type="password" id="wa-token" class="form-control" placeholder="Enter token (hidden for security)" autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="wa-from">From Number</label>
+                                <input type="text" id="wa-from" class="form-control" placeholder="+14155238886" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="wa-to">Your WhatsApp Number</label>
+                                <input type="text" id="wa-to" class="form-control" placeholder="+91XXXXXXXXXX" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="wa-actions">
+                            <button id="btn-wa-save" class="btn btn-whatsapp btn-sm" onclick="saveWhatsAppConfig()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save
+                            </button>
+                            <button id="btn-wa-test" class="btn btn-secondary btn-sm" onclick="testWhatsApp()">
+                                <i class="fa-solid fa-paper-plane"></i> Test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Graph -->
+            <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h2 class="card-title" id="chart-card-title"><i class="fa-solid fa-chart-area"></i> Price History Graph</h2>
+                    <div class="chart-container-inner">
+                        <div id="chart-placeholder" class="chart-placeholder">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <p>Select a product's <b>"History"</b> below<br>to visualize its price timeline.</p>
+                        </div>
+                        <canvas id="price-history-chart" style="display: none;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full Width Inventory -->
+            <div class="glass-card full-width-on-mobile">
+                <div class="search-bar-container">
+                    <h2 class="card-title" style="margin-bottom: 0; border: none; padding-bottom: 0;">
+                        <i class="fa-solid fa-boxes-stacked"></i> Tracked Inventory
+                    </h2>
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="inventory-search" class="form-control search-control" placeholder="Search products...">
+                    </div>
+                    <button id="btn-refresh" class="btn btn-ghost btn-sm" title="Refresh product list">
+                        <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                    </button>
+                </div>
+                
+                <!-- Product Cards Grid -->
+                <div id="product-list" class="product-grid">
+                    <!-- Products dynamically rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Javascript -->
+    <script>
+        let currentChart = null;
+        let activeProductId = null;
+        let activeProductName = "";
+        let allProducts = [];
+        let previousAlerts = new Set();
+
+        // ═══════════════════════════════════════
+        // UI Selectors
+        // ═══════════════════════════════════════
+        const btnToggleMonitor = document.getElementById('btn-toggle-monitor');
+        const monitorStatus = document.getElementById('monitor-status');
+        const addProductForm = document.getElementById('add-product-form');
+        const terminalBox = document.getElementById('terminal-box');
+        const productList = document.getElementById('product-list');
+        const inventorySearch = document.getElementById('inventory-search');
+        const chartPlaceholder = document.getElementById('chart-placeholder');
+        const chartCanvas = document.getElementById('price-history-chart');
+        const chartCardTitle = document.getElementById('chart-card-title');
+        const btnRefresh = document.getElementById('btn-refresh');
+        const toastContainer = document.getElementById('toast-container');
+
+        const inputName = document.getElementById('prod-name');
+        const inputUrl = document.getElementById('prod-url');
+        const inputPrice = document.getElementById('prod-price');
+        const inputPlatform = document.getElementById('prod-platform');
+
+        // ═══════════════════════════════════════
+        // Toast Notification System
+        // ═══════════════════════════════════════
+        function showToast(title, message, type = 'info', duration = 5000) {
+            const icons = {
+                success: 'fa-check',
+                alert: 'fa-fire-flame-curved',
+                error: 'fa-triangle-exclamation',
+                info: 'fa-circle-info',
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon"><i class="fa-solid ${icons[type] || icons.info}"></i></div>
+                <div class="toast-body">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="dismissToast(this.parentElement)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => dismissToast(toast), duration);
+        }
+
+        function dismissToast(toast) {
+            if (!toast || toast.classList.contains('hiding')) return;
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }
+
+        // ═══════════════════════════════════════
+        // Fetch & Render Products
+        // ═══════════════════════════════════════
+        async function fetchProducts() {
+            try {
+                const res = await fetch('/api/products');
+                allProducts = await res.json();
+                renderProducts(allProducts);
+            } catch (err) {
+                console.error("Error fetching products:", err);
+                writeLog("Error connecting to server.", "error");
+            }
+        }
+
+        function getDomainBadge(url, platform) {
+            // Use explicit platform if available, otherwise detect from URL
+            const plat = (platform && platform !== 'auto') ? platform : detectPlatformFromUrl(url);
+            const badges = {
+                amazon: '<span class="product-badge badge-amazon"><i class="fa-brands fa-amazon"></i> Amazon</span>',
+                flipkart: '<span class="product-badge badge-flipkart"><i class="fa-solid fa-f"></i> Flipkart</span>',
+                snapdeal: '<span class="product-badge badge-snapdeal"><i class="fa-solid fa-s"></i> Snapdeal</span>',
+                other: '<span class="product-badge badge-other"><i class="fa-solid fa-globe"></i> Other</span>',
+            };
+            return badges[plat] || badges.other;
+        }
+
+        function detectPlatformFromUrl(url) {
+            const lowUrl = url.toLowerCase();
+            if (lowUrl.includes("amazon.in") || lowUrl.includes("amazon.com")) return "amazon";
+            if (lowUrl.includes("flipkart.com")) return "flipkart";
+            if (lowUrl.includes("snapdeal.com")) return "snapdeal";
+            return "other";
+        }
+
+        function renderProducts(products) {
+            const searchVal = inventorySearch.value.trim().toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(searchVal));
+
+            if (filtered.length === 0) {
+                productList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-radar"></i>
+                        <h3>${products.length === 0 ? 'No Products Being Tracked' : 'No Matching Products'}</h3>
+                        <p>${products.length === 0 
+                            ? 'Start by adding a product URL from Amazon, Flipkart, or Snapdeal using the form above.' 
+                            : 'Try a different search term to find your tracked products.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            productList.innerHTML = filtered.map(p => {
+                const priceMatchClass = (p.price && p.price <= p.target_price) ? 'alert-match' : '';
+                const stockText = p.stock ? 'In Stock' : 'Out of Stock';
+                const stockClass = p.stock ? 'in-stock' : 'out-of-stock';
+                const stockIcon = p.stock ? 'fa-check' : 'fa-circle-exclamation';
+                const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                
+                return `
+                    <div class="product-card" id="prod-card-${p.id}">
+                        <div class="product-card-header">
+                            <h3 class="product-name" title="${p.name}">${p.name}</h3>
+                            ${getDomainBadge(p.url, p.platform)}
+                        </div>
+                        <div class="product-details">
+                            <div class="price-row">
+                                <span class="price-label">Current Price</span>
+                                <span class="price-value ${priceMatchClass}">
+                                    ${p.price ? '₹' + p.price.toLocaleString('en-IN') : '<span style="color: var(--color-muted); font-size: 0.85rem;">Awaiting scrape...</span>'}
+                                </span>
+                            </div>
+                            <div class="price-row">
+                                <span class="price-label">Target Alert</span>
+                                <span class="target-price-value">₹${p.target_price.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div class="product-meta">
+                                <span class="product-stock ${stockClass}">
+                                    <i class="fa-solid ${stockIcon}"></i> ${stockText}
+                                </span>
+                                <span class="product-updated">
+                                    ${p.last_updated ? p.last_updated : 'Not scraped yet'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="product-card-actions">
+                            <button onclick="loadProductChart(${p.id}, '${escapedName}')" class="btn btn-secondary btn-sm">
+                                <i class="fa-solid fa-chart-line"></i> History
+                            </button>
+                            <a href="${p.url}" target="_blank" class="btn btn-primary btn-sm">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit
+                            </a>
+                            <button onclick="deleteProduct(${p.id})" class="btn btn-delete btn-sm" title="Delete Product">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ═══════════════════════════════════════
+        // Stats
+        // ═══════════════════════════════════════
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const stats = await res.json();
+                animateStatValue('stat-total', stats.total_products);
+                animateStatValue('stat-drops', stats.price_drops);
+                animateStatValue('stat-instock', stats.in_stock);
+            } catch (err) {
+                console.error("Error fetching stats:", err);
+            }
+        }
+
+        function animateStatValue(elementId, targetValue) {
+            const el = document.getElementById(elementId);
+            const current = parseInt(el.textContent) || 0;
+            if (current === targetValue) return;
+            
+            const diff = targetValue - current;
+            const steps = Math.min(Math.abs(diff), 20);
+            const increment = diff / steps;
+            let step = 0;
+            
+            const timer = setInterval(() => {
+                step++;
+                if (step >= steps) {
+                    el.textContent = targetValue;
+                    clearInterval(timer);
+                } else {
+                    el.textContent = Math.round(current + increment * step);
+                }
+            }, 30);
+        }
+
+        // ═══════════════════════════════════════
+        // Terminal Log
+        // ═══════════════════════════════════════
+        function writeLog(message, type = "normal") {
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            line.textContent = message;
+            terminalBox.appendChild(line);
+            terminalBox.scrollTop = terminalBox.scrollHeight;
+        }
+
+        // ═══════════════════════════════════════
+        // Add Product
+        // ═══════════════════════════════════════
+        addProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = inputName.value.trim();
+            const url = inputUrl.value.trim();
+            const price = parseFloat(inputPrice.value);
+            const platform = inputPlatform.value;
+
+            try {
+                const res = await fetch('/api/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, url, target_price: price, platform })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Product Added', `Now tracking "${name}" on ${data.platform.charAt(0).toUpperCase() + data.platform.slice(1)}.`, 'success');
+                    addProductForm.reset();
+                    inputPlatform.value = 'auto';
+                    fetchProducts();
+                    fetchStats();
+                } else {
+                    showToast('Error', data.error, 'error');
+                }
+            } catch (err) {
+                console.error("Error adding product:", err);
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            }
+        });
+
+        // Auto-detect platform when URL is pasted
+        inputUrl.addEventListener('input', () => {
+            const url = inputUrl.value.trim().toLowerCase();
+            if (url.includes('amazon.')) inputPlatform.value = 'amazon';
+            else if (url.includes('flipkart.')) inputPlatform.value = 'flipkart';
+            else if (url.includes('snapdeal.')) inputPlatform.value = 'snapdeal';
+            else inputPlatform.value = 'auto';
+        });
+
+        // ═══════════════════════════════════════
+        // Delete Product
+        // ═══════════════════════════════════════
+        async function deleteProduct(id) {
+            if (!confirm("Delete this product and all its tracking history?")) return;
+
+            try {
+                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Deleted', `Product removed from tracking.`, 'info');
+                    if (activeProductId === id) resetChart();
+                    fetchProducts();
+                    fetchStats();
+                } else {
+                    showToast('Error', data.error, 'error');
+                }
+            } catch (err) {
+                console.error("Error deleting product:", err);
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // Chart
+        // ═══════════════════════════════════════
+        function resetChart() {
+            activeProductId = null;
+            activeProductName = "";
+            chartPlaceholder.style.display = 'flex';
+            chartPlaceholder.innerHTML = `
+                <i class="fa-solid fa-chart-line"></i>
+                <p>Select a product's <b>"History"</b> below<br>to visualize its price timeline.</p>
+            `;
+            chartCanvas.style.display = 'none';
+            chartCardTitle.innerHTML = `<i class="fa-solid fa-chart-area"></i> Price History Graph`;
+            if (currentChart) { currentChart.destroy(); currentChart = null; }
+        }
+
+        async function loadProductChart(id, name) {
+            activeProductId = id;
+            activeProductName = name;
+            chartPlaceholder.style.display = 'none';
+            chartCanvas.style.display = 'block';
+            chartCardTitle.innerHTML = `<i class="fa-solid fa-chart-area"></i> Price Trend: <span style="color: var(--primary);">${name}</span>`;
+
+            try {
+                const res = await fetch(`/api/products/${id}/history`);
+                const history = await res.json();
+
+                if (history.length === 0) {
+                    chartPlaceholder.style.display = 'flex';
+                    chartCanvas.style.display = 'none';
+                    chartPlaceholder.innerHTML = `
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <p>No price data yet for <b>"${name}"</b>.<br>Start the monitor to begin scraping.</p>
+                    `;
+                    return;
+                }
+
+                const labels = history.map(h => {
+                    // Format timestamp nicely
+                    const parts = h.timestamp.split(' ');
+                    return parts.length > 1 ? parts[1].substring(0, 5) : h.timestamp;
+                });
+                const dataPoints = history.map(h => h.price);
+
+                if (currentChart) currentChart.destroy();
+
+                const ctx = chartCanvas.getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(139, 92, 246, 0.35)');
+                gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+
+                currentChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Price (₹)',
+                            data: dataPoints,
+                            borderColor: '#8b5cf6',
+                            borderWidth: 2.5,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#8b5cf6',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1.5,
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                            pointHoverBackgroundColor: '#a78bfa',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                padding: 12,
+                                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                                borderColor: 'rgba(139, 92, 246, 0.3)',
+                                borderWidth: 1,
+                                titleFont: { family: 'Outfit', weight: '600', size: 13 },
+                                bodyFont: { family: 'Outfit', size: 12 },
+                                callbacks: {
+                                    label: ctx => `₹${ctx.parsed.y.toLocaleString('en-IN')}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                                ticks: { color: '#9ca3af', font: { family: 'Outfit', size: 10 }, maxRotation: 45 }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                                ticks: {
+                                    color: '#9ca3af',
+                                    font: { family: 'Outfit', size: 10 },
+                                    callback: v => '₹' + v.toLocaleString('en-IN')
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error loading history:", err);
+                showToast('Error', 'Failed to load price history.', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // Monitor Control
+        // ═══════════════════════════════════════
+        btnToggleMonitor.addEventListener('click', async () => {
+            const isRunning = monitorStatus.classList.contains('running');
+            const action = isRunning ? 'stop' : 'start';
+
+            btnToggleMonitor.disabled = true;
+
+            try {
+                const res = await fetch(`/api/monitor/${action}`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    updateMonitorUI(action === 'start');
+                    showToast(
+                        action === 'start' ? 'Monitor Started' : 'Monitor Stopped',
+                        action === 'start' ? 'Background price scraping is now active.' : 'Scraping has been paused.',
+                        action === 'start' ? 'success' : 'info'
+                    );
+                } else {
+                    showToast('Monitor Error', data.message || data.error, 'error');
+                }
+            } catch (err) {
+                console.error(`Error ${action}ing monitor:`, err);
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            } finally {
+                btnToggleMonitor.disabled = false;
+            }
+        });
+
+        function updateMonitorUI(running) {
+            if (running) {
+                monitorStatus.className = 'status-badge running';
+                monitorStatus.querySelector('.status-text').textContent = 'Live Scraping';
+                btnToggleMonitor.className = 'btn btn-sm btn-round btn-danger';
+                btnToggleMonitor.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Monitor';
+            } else {
+                monitorStatus.className = 'status-badge stopped';
+                monitorStatus.querySelector('.status-text').textContent = 'Stopped';
+                btnToggleMonitor.className = 'btn btn-sm btn-round btn-primary';
+                btnToggleMonitor.innerHTML = '<i class="fa-solid fa-play"></i> Start Monitor';
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // Poll Status & Logs
+        // ═══════════════════════════════════════
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/monitor/status');
+                const data = await res.json();
+                
+                updateMonitorUI(data.running);
+                
+                if (data.logs && data.logs.length > 0) {
+                    const shouldScroll = terminalBox.scrollHeight - terminalBox.scrollTop <= terminalBox.clientHeight + 40;
+                    
+                    terminalBox.innerHTML = '';
+                    
+                    data.logs.forEach(logLine => {
+                        const line = document.createElement('div');
+                        line.className = 'terminal-line';
+                        
+                        if (logLine.includes("ALERT:")) {
+                            line.classList.add('alert');
+                            
+                            // Show toast for new ALERT lines (price drops / back in stock)
+                            if (!previousAlerts.has(logLine)) {
+                                previousAlerts.add(logLine);
+                                if (logLine.includes("dropped to")) {
+                                    showToast('🔥 Price Drop!', logLine.replace(/^\[.*?\]\s*ALERT:\s*/, ''), 'alert', 8000);
+                                } else if (logLine.includes("back in stock")) {
+                                    showToast('✅ Back In Stock!', logLine.replace(/^\[.*?\]\s*ALERT:\s*/, ''), 'success', 8000);
+                                }
+                            }
+                        } else if (logLine.includes("Error:") || logLine.includes("Warning:")) {
+                            line.classList.add('error');
+                        }
+                        
+                        line.textContent = logLine;
+                        terminalBox.appendChild(line);
+                    });
+                    
+                    if (shouldScroll) terminalBox.scrollTop = terminalBox.scrollHeight;
+                }
+            } catch (err) {
+                console.error("Error polling status:", err);
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // Refresh button
+        // ═══════════════════════════════════════
+        btnRefresh.addEventListener('click', () => {
+            const icon = btnRefresh.querySelector('i');
+            icon.style.animation = 'none';
+            icon.offsetHeight; // trigger reflow
+            icon.style.animation = 'spin 0.6s ease';
+            fetchProducts();
+            fetchStats();
+            setTimeout(() => { icon.style.animation = 'none'; }, 600);
+        });
+
+        // Spin animation for refresh icon
+        const spinStyle = document.createElement('style');
+        spinStyle.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+        document.head.appendChild(spinStyle);
+
+        // ═══════════════════════════════════════
+        // Search filter
+        // ═══════════════════════════════════════
+        inventorySearch.addEventListener('input', () => {
+            renderProducts(allProducts);
+        });
+
+        // ═══════════════════════════════════════
+        // WhatsApp Settings
+        // ═══════════════════════════════════════
+        const waBody = document.getElementById('wa-body');
+        const waToggleIcon = document.getElementById('wa-toggle-icon');
+        const waEnabled = document.getElementById('wa-enabled');
+        const waEnabledDot = document.getElementById('wa-enabled-dot');
+        const waStatusBadge = document.getElementById('wa-status-badge');
+        const waSid = document.getElementById('wa-sid');
+        const waToken = document.getElementById('wa-token');
+        const waFrom = document.getElementById('wa-from');
+        const waTo = document.getElementById('wa-to');
+
+        function toggleWaPanel() {
+            waBody.classList.toggle('open');
+            waToggleIcon.classList.toggle('open');
+        }
+
+        function updateWaStatusUI(enabled) {
+            if (enabled) {
+                waStatusBadge.className = 'wa-status-badge connected';
+                waStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Active';
+                waEnabledDot.classList.add('active');
+            } else {
+                waStatusBadge.className = 'wa-status-badge disconnected';
+                waStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off';
+                waEnabledDot.classList.remove('active');
+            }
+        }
+
+        async function loadWhatsAppConfig() {
+            try {
+                const res = await fetch('/api/whatsapp/config');
+                const config = await res.json();
+                waEnabled.checked = config.enabled;
+                waSid.value = config.account_sid || '';
+                waFrom.value = config.from_number || '';
+                waTo.value = config.to_number || '';
+                waToken.placeholder = config.auth_token_set ? '•••••••• (saved, enter new to change)' : 'Enter your Auth Token';
+                updateWaStatusUI(config.enabled);
+            } catch (err) {
+                console.error('Error loading WhatsApp config:', err);
+            }
+        }
+
+        async function saveWhatsAppConfig() {
+            const config = {
+                enabled: waEnabled.checked,
+                account_sid: waSid.value.trim(),
+                from_number: waFrom.value.trim(),
+                to_number: waTo.value.trim(),
+            };
+            // Only send token if user entered a new one
+            if (waToken.value.trim()) {
+                config.auth_token = waToken.value.trim();
+            }
+
+            try {
+                const res = await fetch('/api/whatsapp/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('WhatsApp Settings Saved', config.enabled ? 'Notifications are now active.' : 'Notifications are disabled.', config.enabled ? 'success' : 'info');
+                    updateWaStatusUI(config.enabled);
+                    waToken.value = '';
+                    waToken.placeholder = '•••••••• (saved, enter new to change)';
+                } else {
+                    showToast('Error', data.error || 'Failed to save settings.', 'error');
+                }
+            } catch (err) {
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            }
+        }
+
+        async function testWhatsApp() {
+            const btn = document.getElementById('btn-wa-test');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                const res = await fetch('/api/whatsapp/test', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ Test Sent!', 'Check your WhatsApp for the test message.', 'success');
+                } else {
+                    showToast('Test Failed', data.error || data.message || 'Could not send message.', 'error');
+                }
+            } catch (err) {
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Test';
+            }
+        }
+
+        waEnabled.addEventListener('change', () => {
+            updateWaStatusUI(waEnabled.checked);
+        });
+
+        // ═══════════════════════════════════════
+        // Initialize
+        // ═══════════════════════════════════════
+        fetchProducts();
+        fetchStats();
+        pollStatus();
+        loadWhatsAppConfig();
+
+        // Polling intervals
+        setInterval(fetchProducts, 15000);
+        setInterval(fetchStats, 15000);
+        setInterval(pollStatus, 2000);
+    </script>
+</body>
+</html>
