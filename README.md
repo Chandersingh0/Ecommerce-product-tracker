@@ -33,8 +33,6 @@
 > Dashboard showing product tracking, price history graph, and WhatsApp alert panel.
 
 ```
-[Paste your screenshot here after running the app]
-```
 
 ---
 
