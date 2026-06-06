@@ -24,6 +24,14 @@ DATABASE_PATH = os.environ.get("DATABASE_PATH", "products.db")
 # ═══════════════════════════════════════════════════════════════
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "pricepulse_secure_session_secret_key_12345")
+
+# Enable cross-site cookies for Hugging Face iframe compatibility in production
+if os.environ.get("PORT"):  
+    app.config.update(
+        SESSION_COOKIE_SAMESITE='None',
+        SESSION_COOKIE_SECURE=True
+    )
+
 CHECK_INTERVAL = 60  # seconds between scraping cycles
 
 # Rolling activity log (last 200 entries, thread-safe)
