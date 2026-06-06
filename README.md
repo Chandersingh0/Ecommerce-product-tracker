@@ -105,19 +105,8 @@ Configure your alert channels directly inside the **"Alert Settings"** tab in th
 ## 🐳 Hugging Face Spaces Deployment
 
 The live application is deployed and available on Hugging Face Spaces:
-👉 **[Live Demo on Hugging Face Spaces](https://huggingface.co/spaces/chander01/Price-pulse)**
+👉 **[Live Demo on Hugging Face Spaces](https://chander01-price-pulse.hf.space/login)**
 
-This project is configured out-of-the-box to run as a **Hugging Face Space** using the custom Docker SDK. 
-
-1. Create a new Space on Hugging Face, select **Docker** as the SDK, and choose **Blank** template.
-2. Add your Space remote and push the codebase:
-   ```bash
-   git remote add hf https://huggingface.co/spaces/your-username/your-space-name
-   git push -f hf main
-   ```
-3. To persist your database across Space restarts, go to the Space's **Settings** and attach a free **Persistent Storage** mount. The database will automatically be stored on the persistent `/data` partition.
-
----
 
 ## 🗂️ Project Structure
 
