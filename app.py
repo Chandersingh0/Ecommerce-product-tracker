@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import requests
 from bs4 import BeautifulSoup
 import sqlite3
@@ -14,11 +14,16 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from playwright.sync_api import sync_playwright
+from werkzeug.security import generate_password_hash, check_password_hash
+
+# Database path (configurable via environment variable, e.g., for Hugging Face persistent storage mount)
+DATABASE_PATH = os.environ.get("DATABASE_PATH", "products.db")
 
 # ═══════════════════════════════════════════════════════════════
 # Configuration
 # ═══════════════════════════════════════════════════════════════
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "pricepulse_secure_session_secret_key_12345")
 CHECK_INTERVAL = 60  # seconds between scraping cycles
 
 # Rolling activity log (last 200 entries, thread-safe)
@@ -43,29 +48,52 @@ DEFAULT_WHATSAPP_CONFIG = {
 }
 
 
-def load_whatsapp_config():
-    """Load WhatsApp config from JSON file."""
-    if os.path.exists(WHATSAPP_CONFIG_FILE):
-        try:
-            with open(WHATSAPP_CONFIG_FILE, "r") as f:
-                config = json.load(f)
-            # Merge with defaults for any missing keys
-            merged = {**DEFAULT_WHATSAPP_CONFIG, **config}
-            return merged
-        except (json.JSONDecodeError, IOError):
-            pass
+def load_whatsapp_config(user_id):
+    """Load WhatsApp config from SQLite database."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT whatsapp_enabled as enabled, whatsapp_account_sid as account_sid,
+               whatsapp_auth_token as auth_token, whatsapp_from_number as from_number,
+               whatsapp_to_number as to_number FROM user_configs WHERE user_id=?
+    """, (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        config = dict(row)
+        config["enabled"] = bool(config["enabled"])
+        return config
     return DEFAULT_WHATSAPP_CONFIG.copy()
 
 
-def save_whatsapp_config(config):
-    """Save WhatsApp config to JSON file."""
-    with open(WHATSAPP_CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
+def save_whatsapp_config(config, user_id):
+    """Save WhatsApp config to SQLite database."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_configs SET
+            whatsapp_enabled=?,
+            whatsapp_account_sid=?,
+            whatsapp_auth_token=?,
+            whatsapp_from_number=?,
+            whatsapp_to_number=?
+        WHERE user_id=?
+    """, (
+        1 if config.get("enabled") else 0,
+        config.get("account_sid", ""),
+        config.get("auth_token", ""),
+        config.get("from_number", "whatsapp:+14155238886"),
+        config.get("to_number", ""),
+        user_id
+    ))
+    conn.commit()
+    conn.close()
 
 
-def send_whatsapp(message):
-    """Send a WhatsApp message via Twilio API."""
-    config = load_whatsapp_config()
+def send_whatsapp(message, user_id):
+    """Send a WhatsApp message via Twilio API for the specified user."""
+    config = load_whatsapp_config(user_id)
 
     if not config.get("enabled"):
         return False, "WhatsApp notifications are disabled."
@@ -95,11 +123,11 @@ def send_whatsapp(message):
         response = requests.post(url, data=data, auth=(sid, token), timeout=15)
 
         if response.status_code in (200, 201):
-            log_activity(f"WhatsApp sent: {message[:60]}...", "ALERT")
+            log_user_activity(user_id, f"WhatsApp sent: {message[:60]}...", "ALERT")
             return True, "Message sent successfully."
         else:
             error_msg = response.json().get("message", response.text[:200])
-            log_activity(f"WhatsApp send failed: {error_msg}", "ERROR")
+            log_user_activity(user_id, f"WhatsApp send failed: {error_msg}", "ERROR")
             return False, error_msg
 
     except Exception as e:
@@ -121,28 +149,55 @@ DEFAULT_EMAIL_CONFIG = {
 }
 
 
-def load_email_config():
-    """Load email config from JSON file."""
-    if os.path.exists(EMAIL_CONFIG_FILE):
-        try:
-            with open(EMAIL_CONFIG_FILE, "r") as f:
-                config = json.load(f)
-            merged = {**DEFAULT_EMAIL_CONFIG, **config}
-            return merged
-        except (json.JSONDecodeError, IOError):
-            pass
+def load_email_config(user_id):
+    """Load email config from SQLite database."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT email_enabled as enabled, email_smtp_server as smtp_server,
+               email_smtp_port as smtp_port, email_sender as sender_email,
+               email_password as sender_password, email_recipient as recipient_email
+        FROM user_configs WHERE user_id=?
+    """, (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        config = dict(row)
+        config["enabled"] = bool(config["enabled"])
+        return config
     return DEFAULT_EMAIL_CONFIG.copy()
 
 
-def save_email_config(config):
-    """Save email config to JSON file."""
-    with open(EMAIL_CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
+def save_email_config(config, user_id):
+    """Save email config to SQLite database."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_configs SET
+            email_enabled=?,
+            email_smtp_server=?,
+            email_smtp_port=?,
+            email_sender=?,
+            email_password=?,
+            email_recipient=?
+        WHERE user_id=?
+    """, (
+        1 if config.get("enabled") else 0,
+        config.get("smtp_server", "smtp.gmail.com"),
+        int(config.get("smtp_port", 587)),
+        config.get("sender_email", ""),
+        config.get("sender_password", ""),
+        config.get("recipient_email", ""),
+        user_id
+    ))
+    conn.commit()
+    conn.close()
 
 
-def send_email(subject, body):
-    """Send an email notification via SMTP."""
-    config = load_email_config()
+def send_email(subject, body, user_id):
+    """Send an email notification via SMTP for the specified user."""
+    config = load_email_config(user_id)
 
     if not config.get("enabled"):
         return False, "Email notifications are disabled."
@@ -190,15 +245,15 @@ def send_email(subject, body):
             server.login(sender, password)
             server.sendmail(sender, recipient, msg.as_string())
 
-        log_activity(f"Email sent: {subject}", "ALERT")
+        log_user_activity(user_id, f"Email sent: {subject}", "ALERT")
         return True, "Email sent successfully."
 
     except smtplib.SMTPAuthenticationError:
         error_msg = "SMTP authentication failed. Check your email/password (use App Password for Gmail)."
-        log_activity(f"Email auth error: {error_msg}", "ERROR")
+        log_user_activity(user_id, f"Email auth error: {error_msg}", "ERROR")
         return False, error_msg
     except Exception as e:
-        log_activity(f"Email error: {str(e)}", "ERROR")
+        log_user_activity(user_id, f"Email error: {str(e)}", "ERROR")
         return False, str(e)
 
 # Realistic browser headers for scraping
@@ -309,7 +364,10 @@ def _create_stealth_context(browser):
 # ═══════════════════════════════════════════════════════════════
 def get_db():
     """Get a thread-local database connection."""
-    conn = sqlite3.connect("products.db", check_same_thread=False)
+    db_dir = os.path.dirname(os.path.abspath(DATABASE_PATH))
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    conn = sqlite3.connect(DATABASE_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -319,13 +377,57 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
+    # Create users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    # Create user_configs table (stores notifications credentials per user)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_configs (
+            user_id INTEGER PRIMARY KEY,
+            whatsapp_enabled INTEGER DEFAULT 0,
+            whatsapp_account_sid TEXT DEFAULT '',
+            whatsapp_auth_token TEXT DEFAULT '',
+            whatsapp_from_number TEXT DEFAULT 'whatsapp:+14155238886',
+            whatsapp_to_number TEXT DEFAULT '',
+            email_enabled INTEGER DEFAULT 0,
+            email_smtp_server TEXT DEFAULT 'smtp.gmail.com',
+            email_smtp_port INTEGER DEFAULT 587,
+            email_sender TEXT DEFAULT '',
+            email_password TEXT DEFAULT '',
+            email_recipient TEXT DEFAULT '',
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
+    # Create user-specific activity_logs table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            level TEXT DEFAULT 'INFO',
+            timestamp TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
+
+    # Create products table with user_id
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL DEFAULT 1,
             name TEXT NOT NULL,
             url TEXT NOT NULL,
             target_price REAL NOT NULL,
-            platform TEXT DEFAULT 'auto'
+            platform TEXT DEFAULT 'auto',
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
 
@@ -354,6 +456,37 @@ def init_db():
         cursor.execute("ALTER TABLE history ADD COLUMN stock INTEGER DEFAULT 1")
         log_activity("DB: Migrated — added 'stock' column to history.")
 
+    # Migration: add user_id column to products if it doesn't exist
+    try:
+        cursor.execute("SELECT user_id FROM products LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE products ADD COLUMN user_id INTEGER DEFAULT 1")
+        log_activity("DB: Migrated — added 'user_id' column to products.")
+
+    # Check and create default user if none exists (for legacy single-user data migration)
+    cursor.execute("SELECT COUNT(*) as count FROM users")
+    if cursor.fetchone()["count"] == 0:
+        default_username = "admin"
+        default_password = "admin"
+        hashed = generate_password_hash(default_password)
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+            (default_username, hashed, created_at)
+        )
+        default_uid = cursor.lastrowid
+        
+        # Prepopulate default config for this user
+        cursor.execute(
+            "INSERT INTO user_configs (user_id) VALUES (?)",
+            (default_uid,)
+        )
+        conn.commit()
+        log_activity(f"DB: Created default user '{default_username}' with password '{default_password}'.")
+
+    # Set user_id for any legacy products that are NULL or 0
+    cursor.execute("UPDATE products SET user_id = (SELECT id FROM users ORDER BY id ASC LIMIT 1) WHERE user_id IS NULL OR user_id = 0")
+    
     conn.commit()
     conn.close()
 
@@ -375,6 +508,40 @@ def log_activity(message, level="INFO"):
     formatted = f"[{timestamp}] {prefix}{message}"
     with log_lock:
         activity_logs.append(formatted)
+
+
+def log_user_activity(user_id, message, level="INFO"):
+    """Log an activity for a specific user to the database."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO activity_logs (user_id, message, level, timestamp) VALUES (?, ?, ?, ?)",
+            (user_id, message, level, timestamp)
+        )
+        conn.commit()
+    except Exception as e:
+        log_activity(f"Failed to write user log: {str(e)}", "ERROR")
+    finally:
+        conn.close()
+
+    # Also log to system-wide console logs
+    log_activity(f"[User {user_id}] {message}", level)
+
+
+from functools import wraps
+
+def login_required(f):
+    """Decorator to require user authentication on routes."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            if request.path.startswith("/api/"):
+                return jsonify({"success": False, "error": "Unauthorized. Please log in."}), 401
+            return redirect(url_for("login_route"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -802,7 +969,7 @@ def monitor_loop():
         cursor = conn.cursor()
 
         try:
-            cursor.execute("SELECT id, name, url, target_price, platform FROM products")
+            cursor.execute("SELECT id, name, url, target_price, platform, user_id FROM products")
             products = cursor.fetchall()
 
             if not products:
@@ -819,9 +986,10 @@ def monitor_loop():
                 url = product["url"]
                 target = product["target_price"]
                 platform = product["platform"] or "auto"
+                uid = product["user_id"]
 
                 detected = detect_platform(url) if platform == "auto" else platform
-                log_activity(f"Scraping [{detected.upper()}] {name}...")
+                log_user_activity(uid, f"Scraping [{detected.upper()}] {name}...")
 
                 price, in_stock = get_product_data(url, platform)
 
@@ -829,7 +997,7 @@ def monitor_loop():
                 time.sleep(2)
 
                 if price is not None:
-                    log_activity(f"  → ₹{price:,.2f} {'(In Stock)' if in_stock else '(Out of Stock)'}")
+                    log_user_activity(uid, f"  → ₹{price:,.2f} {'(In Stock)' if in_stock else '(Out of Stock)'}")
 
                     # Save to history
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -842,15 +1010,16 @@ def monitor_loop():
                     # Price drop alert
                     if price <= target:
                         alert_msg = f"🔥 {name} dropped to ₹{price:,.2f} (target: ₹{target:,.2f})!"
-                        log_activity(f"ALERT: {alert_msg}", "ALERT")
+                        log_user_activity(uid, f"ALERT: {alert_msg}", "ALERT")
                         # Send notifications
-                        send_whatsapp(f"💰 PricePulse Alert!\n\n{alert_msg}\n\n🔗 {url}")
+                        send_whatsapp(f"💰 PricePulse Alert!\n\n{alert_msg}\n\n🔗 {url}", uid)
                         send_email(
                             f"Price Drop: {name}",
-                            f"{alert_msg}\n\nProduct: {name}\nLink: {url}"
+                            f"{alert_msg}\n\nProduct: {name}\nLink: {url}",
+                            uid
                         )
                 else:
-                    log_activity(f"  → Could not extract price (site may be blocking)", "WARN")
+                    log_user_activity(uid, f"  → Could not extract price (site may be blocking)", "WARN")
 
                 if in_stock:
                     # Only alert if it was previously out of stock
@@ -861,12 +1030,13 @@ def monitor_loop():
                     prev = cursor.fetchone()
                     if prev and prev["stock"] == 0:
                         stock_msg = f"✅ {name} is back in stock!"
-                        log_activity(f"ALERT: {stock_msg}", "ALERT")
+                        log_user_activity(uid, f"ALERT: {stock_msg}", "ALERT")
                         # Send notifications
-                        send_whatsapp(f"📦 PricePulse Alert!\n\n{stock_msg}\n\n🔗 {url}")
+                        send_whatsapp(f"📦 PricePulse Alert!\n\n{stock_msg}\n\n🔗 {url}", uid)
                         send_email(
                             f"Back In Stock: {name}",
-                            f"{stock_msg}\n\nProduct: {name}\nLink: {url}"
+                            f"{stock_msg}\n\nProduct: {name}\nLink: {url}",
+                            uid
                         )
 
         except Exception as e:
@@ -908,9 +1078,121 @@ def stop_monitor():
 
 
 # ═══════════════════════════════════════════════════════════════
+# Flask Routes — Authentication
+# ═══════════════════════════════════════════════════════════════
+@app.route("/login", methods=["GET", "POST"])
+def login_route():
+    """Handle user login."""
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username or not password:
+            return render_template("login.html", error="Username and password are required.")
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, password_hash FROM users WHERE username=?", (username,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user["password_hash"], password):
+            session["user_id"] = user["id"]
+            session["username"] = username
+            log_user_activity(user["id"], "User logged in.")
+            return redirect(url_for("index"))
+        else:
+            return render_template("login.html", error="Invalid username or password.")
+
+    return render_template("login.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register_route():
+    """Handle user registration."""
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+
+        if not username or not password or not confirm_password:
+            return render_template("register.html", error="All fields are required.")
+
+        if password != confirm_password:
+            return render_template("register.html", error="Passwords do not match.")
+
+        if len(password) < 6:
+            return render_template("register.html", error="Password must be at least 6 characters long.")
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE username=?", (username,))
+        if cursor.fetchone():
+            conn.close()
+            return render_template("register.html", error="Username is already taken.")
+
+        # Create user
+        hashed = generate_password_hash(password)
+        created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+                (username, hashed, created_at)
+            )
+            user_id = cursor.lastrowid
+            
+            # Create config for user
+            cursor.execute(
+                "INSERT INTO user_configs (user_id) VALUES (?)",
+                (user_id,)
+            )
+            conn.commit()
+            
+            log_user_activity(user_id, f"Account registered for '{username}'.")
+            session["user_id"] = user_id
+            session["username"] = username
+            return redirect(url_for("index"))
+        except Exception as e:
+            return render_template("register.html", error=f"Registration error: {str(e)}")
+        finally:
+            conn.close()
+
+    return render_template("register.html")
+
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout_route():
+    """Log out the current user."""
+    user_id = session.get("user_id")
+    if user_id:
+        log_user_activity(user_id, "User logged out.")
+    session.clear()
+    return redirect(url_for("login_route"))
+
+
+@app.route("/api/user-status", methods=["GET"])
+def api_user_status():
+    """Get active user status."""
+    if "user_id" in session:
+        return jsonify({
+            "authenticated": True,
+            "username": session["username"],
+            "user_id": session["user_id"]
+        })
+    return jsonify({"authenticated": False})
+
+
+# ═══════════════════════════════════════════════════════════════
 # Flask Routes — Pages
 # ═══════════════════════════════════════════════════════════════
 @app.route("/")
+@login_required
 def index():
     """Serve the main dashboard."""
     return render_template("index.html")
@@ -920,12 +1202,14 @@ def index():
 # Flask Routes — API
 # ═══════════════════════════════════════════════════════════════
 @app.route("/api/products", methods=["GET"])
+@login_required
 def api_get_products():
-    """List all products with their latest scraped price and stock status."""
+    """List all products for the logged-in user with their latest scraped price."""
+    uid = session["user_id"]
     conn = get_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, name, url, target_price, platform FROM products ORDER BY id DESC")
+    cursor.execute("SELECT id, name, url, target_price, platform FROM products WHERE user_id=? ORDER BY id DESC", (uid,))
     products = cursor.fetchall()
 
     result = []
@@ -955,8 +1239,9 @@ def api_get_products():
 
 
 @app.route("/api/products", methods=["POST"])
+@login_required
 def api_add_product():
-    """Add a new product to track."""
+    """Add a new product to track for the logged-in user."""
     data = request.get_json()
 
     name = data.get("name", "").strip()
@@ -976,49 +1261,60 @@ def api_add_product():
     if platform == "auto":
         platform = detect_platform(url)
 
+    uid = session["user_id"]
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO products (name, url, target_price, platform) VALUES (?, ?, ?, ?)",
-        (name, url, target_price, platform)
+        "INSERT INTO products (user_id, name, url, target_price, platform) VALUES (?, ?, ?, ?, ?)",
+        (uid, name, url, target_price, platform)
     )
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
 
-    log_activity(f"Added product: {name} [{platform.upper()}] (target: ₹{target_price:,.2f})", "ALERT")
+    log_user_activity(uid, f"Added product: {name} [{platform.upper()}] (target: ₹{target_price:,.2f})", "ALERT")
 
     return jsonify({"success": True, "id": new_id, "platform": platform})
 
 
 @app.route("/api/products/<int:product_id>", methods=["DELETE"])
+@login_required
 def api_delete_product(product_id):
-    """Delete a product and all its price history."""
+    """Delete a product and all its price history if owned by the user."""
+    uid = session["user_id"]
     conn = get_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT name FROM products WHERE id=?", (product_id,))
+    cursor.execute("SELECT name FROM products WHERE id=? AND user_id=?", (product_id, uid))
     product = cursor.fetchone()
 
     if not product:
         conn.close()
-        return jsonify({"success": False, "error": "Product not found."}), 404
+        return jsonify({"success": False, "error": "Product not found or unauthorized."}), 404
 
     cursor.execute("DELETE FROM history WHERE product_id=?", (product_id,))
     cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
     conn.commit()
     conn.close()
 
-    log_activity(f"Deleted product: {product['name']} (ID: {product_id})", "ALERT")
+    log_user_activity(uid, f"Deleted product: {product['name']} (ID: {product_id})", "ALERT")
 
     return jsonify({"success": True})
 
 
 @app.route("/api/products/<int:product_id>/history", methods=["GET"])
+@login_required
 def api_get_history(product_id):
-    """Get price history for a specific product."""
+    """Get price history for a specific product if owned by the user."""
+    uid = session["user_id"]
     conn = get_db()
     cursor = conn.cursor()
+
+    # Verify ownership
+    cursor.execute("SELECT id FROM products WHERE id=? AND user_id=?", (product_id, uid))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({"success": False, "error": "Unauthorized."}), 401
 
     cursor.execute(
         "SELECT price, stock, timestamp FROM history WHERE product_id=? ORDER BY rowid ASC",
@@ -1038,6 +1334,7 @@ def api_get_history(product_id):
 
 
 @app.route("/api/monitor/start", methods=["POST"])
+@login_required
 def api_start_monitor():
     """Start the background scraping monitor."""
     success, message = start_monitor()
@@ -1045,6 +1342,7 @@ def api_start_monitor():
 
 
 @app.route("/api/monitor/stop", methods=["POST"])
+@login_required
 def api_stop_monitor():
     """Stop the background scraping monitor."""
     success, message = stop_monitor()
@@ -1052,10 +1350,39 @@ def api_stop_monitor():
 
 
 @app.route("/api/monitor/status", methods=["GET"])
+@login_required
 def api_monitor_status():
-    """Get monitor running status and activity logs."""
-    with log_lock:
-        logs = list(activity_logs)
+    """Get monitor running status and user-specific activity logs."""
+    uid = session["user_id"]
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT message, level, timestamp FROM activity_logs WHERE user_id=? ORDER BY id DESC LIMIT 100",
+        (uid,)
+    )
+    db_logs = cursor.fetchall()
+    conn.close()
+
+    # Format logs to match visual display "[timestamp] prefix: message"
+    logs = []
+    for log in reversed(db_logs):
+        # Format date time to HH:MM:SS
+        try:
+            dt = datetime.strptime(log["timestamp"], "%Y-%m-%d %H:%M:%S")
+            ts = dt.strftime("%H:%M:%S")
+        except ValueError:
+            ts = log["timestamp"]
+        
+        level = log["level"]
+        prefix = ""
+        if level == "ALERT":
+            prefix = "ALERT: "
+        elif level == "ERROR":
+            prefix = "Error: "
+        elif level == "WARN":
+            prefix = "Warning: "
+        
+        logs.append(f"[{ts}] {prefix}{log['message']}")
 
     return jsonify({
         "running": monitor_running,
@@ -1064,20 +1391,22 @@ def api_monitor_status():
 
 
 @app.route("/api/stats", methods=["GET"])
+@login_required
 def api_stats():
-    """Get dashboard statistics."""
+    """Get dashboard statistics for the logged-in user."""
+    uid = session["user_id"]
     conn = get_db()
     cursor = conn.cursor()
 
-    # Total products
-    cursor.execute("SELECT COUNT(*) as total FROM products")
+    # Total products for this user
+    cursor.execute("SELECT COUNT(*) as total FROM products WHERE user_id=?", (uid,))
     total = cursor.fetchone()["total"]
 
     # Products with price drops (current price <= target)
     drops = 0
     in_stock_count = 0
 
-    cursor.execute("SELECT id, target_price FROM products")
+    cursor.execute("SELECT id, target_price FROM products WHERE user_id=?", (uid,))
     products = cursor.fetchall()
 
     for p in products:
@@ -1105,9 +1434,11 @@ def api_stats():
 # Flask Routes — WhatsApp Settings API
 # ═══════════════════════════════════════════════════════════════
 @app.route("/api/whatsapp/config", methods=["GET"])
+@login_required
 def api_get_whatsapp_config():
-    """Get current WhatsApp notification settings (token masked)."""
-    config = load_whatsapp_config()
+    """Get current WhatsApp notification settings for the logged-in user (token masked)."""
+    uid = session["user_id"]
+    config = load_whatsapp_config(uid)
     # Mask sensitive fields for the frontend
     safe_config = {
         "enabled": config.get("enabled", False),
@@ -1120,11 +1451,13 @@ def api_get_whatsapp_config():
 
 
 @app.route("/api/whatsapp/config", methods=["POST"])
+@login_required
 def api_save_whatsapp_config():
-    """Save WhatsApp notification settings."""
+    """Save WhatsApp notification settings for the logged-in user."""
     data = request.get_json()
+    uid = session["user_id"]
 
-    config = load_whatsapp_config()
+    config = load_whatsapp_config(uid)
     config["enabled"] = data.get("enabled", config["enabled"])
     config["account_sid"] = data.get("account_sid", config["account_sid"])
     if data.get("auth_token"):  # Only update if provided (not masked)
@@ -1132,22 +1465,25 @@ def api_save_whatsapp_config():
     config["from_number"] = data.get("from_number", config["from_number"])
     config["to_number"] = data.get("to_number", config["to_number"])
 
-    save_whatsapp_config(config)
-    log_activity(f"WhatsApp settings updated. Notifications {'enabled' if config['enabled'] else 'disabled'}.", "ALERT")
+    save_whatsapp_config(config, uid)
+    log_user_activity(uid, f"WhatsApp settings updated. Notifications {'enabled' if config['enabled'] else 'disabled'}.", "ALERT")
 
     return jsonify({"success": True})
 
 
 @app.route("/api/whatsapp/test", methods=["POST"])
+@login_required
 def api_test_whatsapp():
-    """Send a test WhatsApp message."""
-    config = load_whatsapp_config()
+    """Send a test WhatsApp message for the logged-in user."""
+    uid = session["user_id"]
+    config = load_whatsapp_config(uid)
     if not config.get("enabled"):
         return jsonify({"success": False, "error": "WhatsApp notifications are disabled. Enable them first."})
 
     success, message = send_whatsapp(
         "🧪 PricePulse Test Message\n\nYour WhatsApp notifications are working! "
-        "You'll receive alerts when tracked product prices drop below your target."
+        "You'll receive alerts when tracked product prices drop below your target.",
+        uid
     )
     return jsonify({"success": success, "message": message})
 
@@ -1156,9 +1492,11 @@ def api_test_whatsapp():
 # Flask Routes — Email Settings API
 # ═══════════════════════════════════════════════════════════════
 @app.route("/api/email/config", methods=["GET"])
+@login_required
 def api_get_email_config():
-    """Get current email notification settings (password masked)."""
-    config = load_email_config()
+    """Get current email notification settings for the logged-in user (password masked)."""
+    uid = session["user_id"]
+    config = load_email_config(uid)
     safe_config = {
         "enabled": config.get("enabled", False),
         "smtp_server": config.get("smtp_server", ""),
@@ -1171,11 +1509,13 @@ def api_get_email_config():
 
 
 @app.route("/api/email/config", methods=["POST"])
+@login_required
 def api_save_email_config():
-    """Save email notification settings."""
+    """Save email notification settings for the logged-in user."""
     data = request.get_json()
+    uid = session["user_id"]
 
-    config = load_email_config()
+    config = load_email_config(uid)
     config["enabled"] = data.get("enabled", config["enabled"])
     config["smtp_server"] = data.get("smtp_server", config["smtp_server"])
     config["smtp_port"] = int(data.get("smtp_port", config["smtp_port"]))
@@ -1184,23 +1524,26 @@ def api_save_email_config():
         config["sender_password"] = data["sender_password"]
     config["recipient_email"] = data.get("recipient_email", config["recipient_email"])
 
-    save_email_config(config)
-    log_activity(f"Email settings updated. Notifications {'enabled' if config['enabled'] else 'disabled'}.", "ALERT")
+    save_email_config(config, uid)
+    log_user_activity(uid, f"Email settings updated. Notifications {'enabled' if config['enabled'] else 'disabled'}.", "ALERT")
 
     return jsonify({"success": True})
 
 
 @app.route("/api/email/test", methods=["POST"])
+@login_required
 def api_test_email():
-    """Send a test email."""
-    config = load_email_config()
+    """Send a test email for the logged-in user."""
+    uid = session["user_id"]
+    config = load_email_config(uid)
     if not config.get("enabled"):
         return jsonify({"success": False, "error": "Email notifications are disabled. Enable them first."})
 
     success, message = send_email(
         "PricePulse Test Email",
         "Your email notifications are working!\n\n"
-        "You will receive alerts when tracked product prices drop below your target."
+        "You will receive alerts when tracked product prices drop below your target.",
+        uid
     )
     return jsonify({"success": success, "message": message})
 

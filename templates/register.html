@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — PricePulse</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-base: #080c14;
+            --bg-surface: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --color-text: #f3f4f6;
+            --color-muted: #9ca3af;
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.4);
+            --accent-blue: #0ea5e9;
+            --accent-red: #f43f5e;
+            --accent-red-glow: rgba(244, 63, 94, 0.2);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+            background-attachment: fixed;
+            padding: 1.5rem;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .header-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px var(--primary-glow));
+            margin-bottom: 0.5rem;
+        }
+
+        .header-section h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .header-section p {
+            color: var(--color-muted);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #d1d5db;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            color: var(--color-muted);
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            color: var(--color-text);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .error-banner {
+            background: var(--accent-red-glow);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.85rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
+            border: none;
+            border-radius: 0.75rem;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px var(--primary-glow);
+            filter: brightness(1.1);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .footer-link {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--color-muted);
+        }
+
+        .footer-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .footer-link a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="header-section">
+            <div class="logo-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <h1>Create Account</h1>
+            <p>Sign up to start tracking prices</p>
+        </div>
+
+        <form action="/register" method="POST" autocomplete="off">
+            {% if error %}
+            <div class="error-banner">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>{{ error }}</span>
+            </div>
+            <div style="height: 1.25rem;"></div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" id="username" name="username" class="form-input" placeholder="Choose a username" required autofocus>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input type="password" id="password" name="password" class="form-input" placeholder="Create a password (min 6 chars)" minlength="6" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="Confirm your password" minlength="6" required>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <span>Sign Up</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="footer-link">
+            Already have an account? <a href="/login">Sign In</a>
+        </div>
+    </div>
+</body>
+</html>

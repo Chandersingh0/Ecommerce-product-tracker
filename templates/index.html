@@ -1113,6 +1113,14 @@
                 <span class="logo-subtitle">Multi-Platform Tracker</span>
             </div>
             <div class="header-right">
+                <div class="user-badge" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1.25rem; border-radius: 50px; border: 1px solid var(--border-color); font-size: 0.9rem; font-weight: 500; backdrop-filter: blur(10px);">
+                    <i class="fa-solid fa-circle-user" style="color: var(--primary); font-size: 1.1rem;"></i>
+                    <span id="username-display">Loading...</span>
+                    <span style="color: var(--border-color); margin: 0 0.25rem;">|</span>
+                    <a href="/logout" style="color: var(--color-muted); text-decoration: none; transition: var(--transition); display: flex; align-items: center; gap: 0.25rem;" onmouseover="this.style.color='var(--accent-red)'" onmouseout="this.style.color='var(--color-muted)'">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </a>
+                </div>
                 <div class="monitor-controls">
                     <div id="monitor-status" class="status-badge stopped">
                         <span class="status-dot"></span>
@@ -2095,6 +2103,21 @@
         // ═══════════════════════════════════════
         // Initialize
         // ═══════════════════════════════════════
+        async function fetchUserStatus() {
+            try {
+                const res = await fetch('/api/user-status');
+                const data = await res.json();
+                if (data.authenticated) {
+                    document.getElementById('username-display').textContent = data.username;
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (err) {
+                console.error("Error fetching user status:", err);
+            }
+        }
+
+        fetchUserStatus();
         fetchProducts();
         fetchStats();
         pollStatus();
