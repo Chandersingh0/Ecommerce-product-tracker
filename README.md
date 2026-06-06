@@ -33,8 +33,6 @@
 > Dashboard showing product tracking, price history graph, and WhatsApp alert panel.
 
 ```
-[Paste your screenshot here after running the app]
-```
 
 ---
 
@@ -43,7 +41,7 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pricepulse.git
+git clone https://github.com/Chandersingh0/Ecommerce-product-tracker.git
 cd pricepulse
 ```
 
