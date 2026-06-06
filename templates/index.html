@@ -6,29 +6,50 @@
     <title>PricePulse — Premium Multi-Platform Price Tracker</title>
     <meta name="description" content="Track product prices across Amazon, Flipkart, and Snapdeal. Get instant alerts on price drops and stock changes.">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-base: #080c14;
-            --bg-surface: rgba(17, 24, 39, 0.7);
-            --bg-surface-hover: rgba(31, 41, 55, 0.85);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --color-text: #f3f4f6;
-            --color-muted: #9ca3af;
-            --primary: #8b5cf6;
-            --primary-glow: rgba(139, 92, 246, 0.4);
-            --accent-green: #10b981;
-            --accent-green-glow: rgba(16, 185, 129, 0.2);
-            --accent-red: #f43f5e;
-            --accent-red-glow: rgba(244, 63, 94, 0.2);
-            --accent-blue: #0ea5e9;
-            --accent-amber: #f59e0b;
-            --accent-amber-glow: rgba(245, 158, 11, 0.15);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg-base: #f8fafc; /* Slate 50 */
+            --bg-card: #ffffff;
+            --bg-sidebar: #ffffff;
+            --bg-sidebar-hover: rgba(79, 70, 229, 0.05); /* Indigo 500 tint */
+            --bg-sidebar-active: rgba(79, 70, 229, 0.08);
+            --border-color: #e2e8f0; /* Slate 200 */
+            --text-main: #0f172a; /* Slate 900 */
+            --text-muted: #64748b; /* Slate 500 */
+            --text-light: #94a3b8; /* Slate 400 */
+            
+            --primary: #6366f1; /* Indigo 500 */
+            --primary-hover: #4f46e5; /* Indigo 600 */
+            --primary-light: #e0e7ff; /* Indigo 100 */
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            
+            --accent-green: #10b981; /* Emerald 500 */
+            --accent-green-light: #ecfdf5;
+            --accent-green-hover: #059669;
+            
+            --accent-red: #f43f5e; /* Rose 500 */
+            --accent-red-light: #fff1f2;
+            --accent-red-hover: #e11d48;
+            
+            --accent-blue: #3b82f6; /* Blue 500 */
+            --accent-blue-light: #eff6ff;
+            
+            --accent-amber: #f59e0b; /* Amber 500 */
+            --accent-amber-light: #fef3c7;
+            
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.01);
+            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.02), 0 2px 8px -1px rgba(0, 0, 0, 0.01);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
         }
 
         * {
@@ -38,128 +59,348 @@
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--bg-base);
-            color: var(--color-text);
+            color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.03) 0%, transparent 60%);
-            background-attachment: fixed;
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
-
-        /* Container Layout */
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 1.5rem 2rem;
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         /* ═══════════════════════════════════════ */
-        /* Header */
+        /* App Layout Structure */
         /* ═══════════════════════════════════════ */
-        header {
+        .app-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        @media (max-width: 992px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            padding: 1.5rem;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                width: 260px;
+                box-shadow: var(--shadow-lg);
+            }
+            .sidebar.mobile-open {
+                left: 0;
+            }
+        }
+
+        .sidebar-brand {
+            display: flex;
             align-items: center;
-            padding-bottom: 1.5rem;
+            gap: 0.75rem;
+            padding-bottom: 2rem;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 1.5rem;
         }
 
-        .logo-section {
+        .sidebar-brand .logo-icon {
+            font-size: 1.6rem;
+            color: var(--primary);
+            filter: drop-shadow(0 0 6px var(--primary-glow));
+        }
+
+        .sidebar-brand .brand-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-main), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex-grow: 1;
+        }
+
+        .nav-item {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
         }
 
-        .logo-icon {
-            font-size: 1.75rem;
-            background: linear-gradient(135deg, var(--primary), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px var(--primary-glow));
-            animation: logoFloat 3s ease-in-out infinite;
+        .nav-item:hover {
+            color: var(--primary);
+            background-color: var(--bg-sidebar-hover);
         }
 
-        @keyframes logoFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-3px); }
+        .nav-item.active {
+            color: var(--primary);
+            background-color: var(--bg-sidebar-active);
         }
 
-        .logo-section h1 {
-            font-size: 1.5rem;
+        .nav-item i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.25rem;
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow: hidden;
+        }
+
+        .profile-icon {
+            font-size: 1.8rem;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .user-info .username {
+            font-size: 0.85rem;
             font-weight: 700;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #ffffff, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .logo-section .logo-subtitle {
+        .user-info .user-role {
             font-size: 0.7rem;
-            color: var(--color-muted);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-left: 0.75rem;
-            padding-left: 0.75rem;
-            border-left: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-weight: 500;
         }
 
-        .header-right {
+        .btn-logout {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 1.1rem;
+            padding: 0.4rem;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .btn-logout:hover {
+            color: var(--accent-red);
+            background-color: var(--accent-red-light);
+        }
+
+        /* Mobile sidebar overlay backdrop */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 90;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Main Panel & Top Bar */
+        /* ═══════════════════════════════════════ */
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        .top-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 80;
+        }
+
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 1rem 1.25rem;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+        }
+
+        .page-header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .page-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .page-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .top-bar-right {
             display: flex;
             align-items: center;
             gap: 1rem;
+            flex-wrap: wrap;
         }
 
-        .monitor-controls {
+        @media (max-width: 768px) {
+            .top-bar-right {
+                justify-content: space-between;
+            }
+        }
+
+        .search-wrapper {
+            position: relative;
             display: flex;
             align-items: center;
-            gap: 1rem;
-            background: var(--bg-surface);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
+            min-width: 240px;
+        }
+
+        @media (max-width: 768px) {
+            .search-wrapper {
+                width: 100%;
+            }
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 0.9rem;
+            color: var(--text-light);
+            font-size: 0.85rem;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            padding: 0.55rem 1rem 0.55rem 2.2rem;
+            background-color: var(--bg-base);
             border: 1px solid var(--border-color);
-            backdrop-filter: blur(10px);
+            border-radius: 50px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 0.85rem;
+            transition: var(--transition);
+        }
+
+        .search-wrapper input:focus {
+            outline: none;
+            background-color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .monitor-controller {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
         }
 
         .status-badge {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-            font-weight: 500;
-            padding: 0.25rem 0.75rem;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 0.2rem 0.6rem;
             border-radius: 20px;
         }
 
         .status-badge.running {
-            background: var(--accent-green-glow);
+            background-color: var(--accent-green-light);
             color: var(--accent-green);
         }
 
         .status-badge.stopped {
-            background: var(--accent-red-glow);
+            background-color: var(--accent-red-light);
             color: var(--accent-red);
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
         }
 
         .status-badge.running .status-dot {
             background-color: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
             animation: pulse 2s infinite;
         }
 
@@ -173,126 +414,123 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
-        /* ═══════════════════════════════════════ */
-        /* Buttons */
-        /* ═══════════════════════════════════════ */
-        .btn {
-            font-family: inherit;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1.25rem;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 0.875rem;
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
             cursor: pointer;
-            border: 1px solid transparent;
             transition: var(--transition);
-            text-decoration: none;
         }
 
-        .btn:active { transform: scale(0.97); }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), #7c3aed);
-            color: white;
-            box-shadow: 0 4px 15px var(--primary-glow);
+        .mobile-menu-btn:hover {
+            background-color: var(--bg-base);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+        @media (max-width: 992px) {
+            .mobile-menu-btn {
+                display: block;
+            }
         }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: var(--color-text);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .btn-danger {
-            background: var(--accent-red-glow);
-            border: 1px solid var(--accent-red);
-            color: var(--accent-red);
-        }
-
-        .btn-danger:hover {
-            background: var(--accent-red);
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        .btn-ghost {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--color-muted);
-        }
-
-        .btn-ghost:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--color-text);
-        }
-
-        .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.75rem; border-radius: 6px; }
-        .btn-round { border-radius: 50px; }
 
         /* ═══════════════════════════════════════ */
-        /* Stat Cards */
+        /* Content Container Grid */
+        /* ═══════════════════════════════════════ */
+        .content-container {
+            padding: 2rem;
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        @media (max-width: 768px) {
+            .content-container {
+                padding: 1.25rem;
+            }
+        }
+
+        .tab-content {
+            display: none;
+            animation: tabFadeIn 0.3s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes tabFadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Statistics Metrics cards */
         /* ═══════════════════════════════════════ */
         .stats-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
+            gap: 1.5rem;
             margin-bottom: 1.5rem;
         }
 
-        @media (max-width: 768px) {
-            .stats-row { grid-template-columns: 1fr; }
+        @media (max-width: 992px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
         }
 
         .stat-card {
-            background: var(--bg-surface);
+            background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
+            border-radius: var(--radius-lg);
             padding: 1.25rem 1.5rem;
-            backdrop-filter: blur(12px);
-            transition: var(--transition);
+            box-shadow: var(--shadow-card);
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            position: relative;
-            overflow: hidden;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.75rem;
+            transition: var(--transition);
         }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            border-radius: 14px 14px 0 0;
-        }
-
-        .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--primary), var(--accent-blue)); }
-        .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-green), #34d399); }
-        .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-amber), #fbbf24); }
 
         .stat-card:hover {
-            border-color: rgba(255, 255, 255, 0.15);
             transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: #cbd5e1;
+        }
+
+        .stat-card-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 0.15rem;
         }
 
         .stat-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -300,113 +538,169 @@
             flex-shrink: 0;
         }
 
-        .stat-card:nth-child(1) .stat-icon { background: rgba(139, 92, 246, 0.15); color: var(--primary); }
-        .stat-card:nth-child(2) .stat-icon { background: var(--accent-green-glow); color: var(--accent-green); }
-        .stat-card:nth-child(3) .stat-icon { background: var(--accent-amber-glow); color: var(--accent-amber); }
-
-        .stat-info { flex: 1; }
-
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            line-height: 1.2;
-            background: linear-gradient(135deg, #ffffff, var(--color-muted));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .stat-icon.bg-indigo {
+            background-color: var(--primary-light);
+            color: var(--primary);
         }
 
-        .stat-label {
-            font-size: 0.8rem;
-            color: var(--color-muted);
+        .stat-icon.bg-green {
+            background-color: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .stat-icon.bg-orange {
+            background-color: var(--accent-amber-light);
+            color: var(--accent-amber);
+        }
+
+        .stat-card-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
             font-weight: 500;
-            margin-top: 0.15rem;
+        }
+
+        .stat-trendText {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-trendText.green {
+            color: var(--accent-green-hover);
+        }
+
+        /* Stock progress distribution meter */
+        .stock-meter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            width: 100%;
+        }
+
+        .stock-meter-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .stock-meter-labels .lbl-instock {
+            color: var(--accent-green-hover);
+        }
+
+        .stock-meter-labels .lbl-outstock {
+            color: var(--accent-red);
+        }
+
+        .stock-progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--accent-red-light);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stock-progress-bar .progress-fill {
+            height: 100%;
+            background-color: var(--accent-green);
+            border-radius: 10px;
+            transition: width 0.5s ease-out;
         }
 
         /* ═══════════════════════════════════════ */
-        /* Dashboard Grid */
+        /* Glass Cards / Layout Widgets */
         /* ═══════════════════════════════════════ */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
+        .glass-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-card);
             margin-bottom: 1.5rem;
         }
 
-        @media (min-width: 1024px) {
-            .dashboard-grid { grid-template-columns: 380px 1fr; }
-            .full-width-on-mobile { grid-column: span 2; }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
         }
-
-        /* Glass Card */
-        .glass-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            backdrop-filter: blur(12px) saturate(180%);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
-        }
-
-        .glass-card:hover { border-color: rgba(255, 255, 255, 0.12); }
 
         .card-title {
             font-size: 1.05rem;
-            font-weight: 600;
-            margin-bottom: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            color: #ffffff;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.75rem;
         }
 
-        .card-title i { color: var(--primary); }
+        .card-title i {
+            color: var(--primary);
+        }
+
+        .card-header-badge {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
 
         /* ═══════════════════════════════════════ */
-        /* Form Styling */
+        /* Forms styling */
         /* ═══════════════════════════════════════ */
-        .form-group { margin-bottom: 1rem; }
+        .form-group {
+            margin-bottom: 1rem;
+        }
 
         .form-group label {
             display: block;
-            font-size: 0.8rem;
-            font-weight: 500;
+            font-size: 0.75rem;
+            font-weight: 700;
             margin-bottom: 0.4rem;
-            color: var(--color-muted);
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .form-control {
             width: 100%;
-            padding: 0.7rem 1rem;
-            background: rgba(0, 0, 0, 0.3);
+            padding: 0.65rem 0.9rem;
+            background-color: var(--bg-base);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--color-text);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
             font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             transition: var(--transition);
         }
 
         .form-control:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background-color: #ffffff;
         }
 
-        .form-control::placeholder { color: rgba(156, 163, 175, 0.5); }
+        .form-control::placeholder {
+            color: var(--text-light);
+        }
 
         select.form-control {
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
-            background-size: 1.25em;
-            padding-right: 2.5rem;
+            background-size: 1.1em;
+            padding-right: 2.2rem;
         }
 
         .form-row {
@@ -415,145 +709,274 @@
             gap: 0.75rem;
         }
 
-        /* Platform icons in form */
-        .platform-hint {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--color-muted);
-            padding: 0.5rem 0.75rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
+        @media (max-width: 480px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
         }
 
-        .platform-hint .platform-icons { display: flex; gap: 0.5rem; }
+        .platform-hint {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            padding: 0.6rem 0.75rem;
+            background-color: var(--bg-base);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+        }
+
+        .platform-hint .hint-title {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .platform-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
 
         .platform-chip {
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
-            padding: 0.15rem 0.4rem;
+            padding: 0.15rem 0.45rem;
             border-radius: 4px;
             font-size: 0.65rem;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
+            border: 1px solid transparent;
         }
 
-        .chip-amazon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-        .chip-flipkart { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-        .chip-snapdeal { background: rgba(225, 29, 72, 0.15); color: #f43f5e; }
+        .chip-amazon { background-color: var(--accent-amber-light); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.15); }
+        .chip-flipkart { background-color: var(--accent-blue-light); color: var(--accent-blue); border-color: rgba(59, 130, 246, 0.15); }
+        .chip-snapdeal { background-color: var(--accent-red-light); color: var(--accent-red); border-color: rgba(244, 63, 94, 0.15); }
 
         /* ═══════════════════════════════════════ */
-        /* Terminal Console */
+        /* Buttons styling */
         /* ═══════════════════════════════════════ */
-        .terminal-box {
-            font-family: 'Fira Code', monospace;
-            background: rgba(0, 0, 0, 0.65);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem;
-            height: 180px;
-            overflow-y: auto;
-            font-size: 0.78rem;
-            line-height: 1.6;
-            color: #34d399;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
-        }
-
-        .terminal-box::-webkit-scrollbar { width: 6px; }
-        .terminal-box::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-        .terminal-box::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
-
-        .terminal-line { margin-bottom: 0.15rem; word-break: break-all; }
-        .terminal-line.error { color: var(--accent-red); }
-        .terminal-line.alert { color: var(--accent-blue); }
-
-        /* ═══════════════════════════════════════ */
-        /* Product Inventory */
-        /* ═══════════════════════════════════════ */
-        .search-bar-container {
-            display: flex;
-            justify-content: space-between;
+        .btn {
+            font-family: inherit;
+            display: inline-flex;
             align-items: center;
-            margin-bottom: 1.5rem;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .search-input-wrapper {
-            position: relative;
-            flex-grow: 1;
-            min-width: 200px;
-        }
-
-        .search-input-wrapper i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--color-muted);
-        }
-
-        .search-control { padding-left: 2.5rem; }
-
-        .product-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-
-        @media (min-width: 768px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1200px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
-
-        .product-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.25rem;
-            position: relative;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1.1rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid transparent;
             transition: var(--transition);
+            text-decoration: none;
+            user-select: none;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 6px 14px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: #ffffff;
+            border-color: var(--border-color);
+            color: var(--text-main);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-base);
+            border-color: #cbd5e1;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-red-light);
+            border-color: rgba(244, 63, 94, 0.2);
+            color: var(--accent-red);
+        }
+
+        .btn-danger:hover {
+            background-color: var(--accent-red);
+            border-color: var(--accent-red);
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(244, 63, 94, 0.2);
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+
+        .btn-round {
+            border-radius: 50px;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Dashboard Layout Grid */
+        /* ═══════════════════════════════════════ */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            margin-bottom: 0;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            animation: cardFadeIn 0.4s ease-out;
         }
 
-        @keyframes cardFadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+        .chart-container-inner {
+            position: relative;
+            height: 320px;
+            width: 100%;
+            flex-grow: 1;
         }
 
-        .product-card:hover {
-            transform: translateY(-4px);
-            background: rgba(255, 255, 255, 0.04);
-            border-color: rgba(139, 92, 246, 0.3);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .product-card-header {
+        .chart-placeholder {
+            position: absolute;
+            inset: 0;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            text-align: center;
+            background-color: var(--bg-base);
+            border-radius: var(--radius-md);
+            border: 2px dashed var(--border-color);
+            padding: 1.5rem;
         }
 
-        .product-name {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #ffffff;
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+        .chart-placeholder i {
+            font-size: 2.2rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+            opacity: 0.5;
+        }
+
+        .chart-placeholder p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .form-card {
+            margin-bottom: 0;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Tracked Inventory Data Table */
+        /* ═══════════════════════════════════════ */
+        .table-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-header .card-title {
+            margin-bottom: 0;
+            border: none;
+            padding: 0;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        .inventory-table th {
+            background-color: var(--bg-base);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .inventory-table td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .inventory-table tbody tr {
+            transition: var(--transition);
+        }
+
+        .inventory-table tbody tr:hover {
+            background-color: var(--bg-sidebar-hover);
+        }
+
+        .product-info-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            max-width: 420px;
+        }
+
+        .product-info-cell .product-name {
+            font-weight: 700;
+            color: var(--text-main);
             overflow: hidden;
             text-overflow: ellipsis;
-            min-height: 2.8rem;
+            white-space: nowrap;
         }
 
+        .product-info-cell .product-link-btn {
+            font-size: 0.72rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            width: fit-content;
+        }
+
+        .product-info-cell .product-link-btn:hover {
+            text-decoration: underline;
+            color: var(--primary-hover);
+        }
+
+        /* Platform explicit badge */
         .product-badge {
             font-size: 0.65rem;
             font-weight: 700;
@@ -561,142 +984,369 @@
             border-radius: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .badge-snapdeal { background: rgba(225, 29, 72, 0.15); color: #f43f5e; }
-        .badge-amazon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-        .badge-flipkart { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-        .badge-other { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
-
-        .product-details { margin-bottom: 1rem; }
-
-        .price-row {
-            display: flex;
-            justify-content: space-between;
+            display: inline-flex;
             align-items: center;
-            margin-bottom: 0.5rem;
+            gap: 0.25rem;
+            width: fit-content;
         }
 
-        .price-label { font-size: 0.8rem; color: var(--color-muted); }
+        .badge-amazon { background-color: var(--accent-amber-light); color: var(--accent-amber); }
+        .badge-flipkart { background-color: var(--accent-blue-light); color: var(--accent-blue); }
+        .badge-snapdeal { background-color: var(--accent-red-light); color: var(--accent-red); }
+        .badge-other { background-color: var(--primary-light); color: var(--primary); }
 
-        .price-value { font-weight: 700; font-size: 1.2rem; color: #ffffff; }
+        /* Price badges */
+        .price-badge-target {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
 
-        .price-value.alert-match {
+        .price-badge-current {
+            font-weight: 800;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .price-badge-current.alert-match {
             color: var(--accent-green);
-            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+            background-color: var(--accent-green-light);
+            animation: pulse-border 2s infinite;
         }
 
-        .target-price-value { font-weight: 500; font-size: 0.95rem; color: var(--color-muted); }
-
-        .product-meta {
-            margin-top: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
+        .awaiting-scrape {
+            color: var(--text-light);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Stock badges */
         .product-stock {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-            font-size: 0.75rem;
-            font-weight: 600;
+            gap: 0.3rem;
+            font-size: 0.72rem;
+            font-weight: 700;
             padding: 0.15rem 0.5rem;
             border-radius: 20px;
+            text-transform: uppercase;
         }
 
-        .product-stock.in-stock { background: var(--accent-green-glow); color: var(--accent-green); }
-        .product-stock.out-of-stock { background: var(--accent-red-glow); color: var(--accent-red); }
-
-        .product-updated {
-            font-size: 0.65rem;
-            color: var(--color-muted);
-            font-family: 'Fira Code', monospace;
+        .product-stock.in-stock {
+            background-color: var(--accent-green-light);
+            color: var(--accent-green-hover);
         }
 
-        .product-card-actions {
-            display: flex;
-            gap: 0.5rem;
-            border-top: 1px solid var(--border-color);
-            padding-top: 0.75rem;
-            margin-top: auto;
-        }
-
-        .product-card-actions .btn { flex-grow: 1; padding: 0.4rem; font-size: 0.8rem; }
-
-        .product-card-actions .btn-delete {
-            flex-grow: 0;
-            aspect-ratio: 1;
-            width: 32px;
-            padding: 0;
-            background: rgba(244, 63, 94, 0.1);
+        .product-stock.out-of-stock {
+            background-color: var(--accent-red-light);
             color: var(--accent-red);
-            border: 1px solid rgba(244, 63, 94, 0.2);
         }
 
-        .product-card-actions .btn-delete:hover {
-            background: var(--accent-red);
-            color: white;
+        .product-updated-cell {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
         }
 
-        /* ═══════════════════════════════════════ */
-        /* Empty State */
-        /* ═══════════════════════════════════════ */
+        .table-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.35rem;
+        }
+
+        .table-actions .btn-delete {
+            padding: 0.35rem;
+            aspect-ratio: 1;
+            width: 28px;
+            background-color: var(--accent-red-light);
+            border: 1px solid rgba(244, 63, 94, 0.15);
+            color: var(--accent-red);
+            border-radius: 6px;
+        }
+
+        .table-actions .btn-delete:hover {
+            background-color: var(--accent-red);
+            color: #ffffff;
+        }
+
+        /* Empty table state */
         .empty-state {
-            grid-column: 1 / -1;
             text-align: center;
-            padding: 3rem 1.5rem;
-            background: rgba(255, 255, 255, 0.01);
-            border: 1px dashed var(--border-color);
-            border-radius: 12px;
-            color: var(--color-muted);
+            padding: 3.5rem 1.5rem;
+            color: var(--text-muted);
         }
 
         .empty-state i {
-            font-size: 3rem;
-            color: rgba(139, 92, 246, 0.3);
+            font-size: 2.5rem;
+            color: var(--primary);
+            opacity: 0.35;
+            margin-bottom: 0.75rem;
+            animation: bounce-slow 3s infinite;
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .empty-state h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+
+        .empty-state p {
+            font-size: 0.8rem;
+            max-width: 320px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Alert Settings Tab Panels */
+        /* ═══════════════════════════════════════ */
+        .alerts-layout-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 992px) {
+            .alerts-layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .wa-settings-card {
+            border-top: 4px solid #25d366;
+        }
+
+        .email-settings-card {
+            border-top: 4px solid var(--primary);
+        }
+
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 1rem;
-            animation: emptyBounce 2s ease-in-out infinite;
         }
 
-        @keyframes emptyBounce {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-8px) scale(1.05); }
+        .settings-card-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .empty-state h3 { color: #ffffff; margin-bottom: 0.5rem; font-size: 1.1rem; }
-        .empty-state p { max-width: 350px; margin: 0 auto; font-size: 0.9rem; line-height: 1.5; }
+        .settings-card-header h3 i.fa-whatsapp { color: #25d366; }
+        .settings-card-header h3 i.fa-envelope { color: var(--primary); }
 
-        /* ═══════════════════════════════════════ */
-        /* Chart */
-        /* ═══════════════════════════════════════ */
-        .chart-container-inner { position: relative; height: 300px; width: 100%; }
+        .settings-status-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
 
-        .chart-placeholder {
+        .settings-status-badge.connected {
+            background-color: var(--accent-green-light);
+            color: var(--accent-green-hover);
+        }
+
+        .settings-status-badge.disconnected {
+            background-color: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* Slider Toggle switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0.5rem;
+            background-color: var(--bg-base);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.25rem;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            inset: 0;
+            background-color: #cbd5e1;
+            border-radius: 22px;
+            transition: var(--transition);
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--accent-green);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+        }
+
+        .setup-hint-box {
+            background-color: var(--bg-base);
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+            padding: 0.75rem;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .setup-hint-box.wa-box {
+            border-left-color: #25d366;
+        }
+
+        .setup-hint-box strong {
+            color: var(--text-main);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .setup-hint-box ol {
+            margin-left: 1.1rem;
+            margin-top: 0.25rem;
+        }
+
+        .setup-hint-box code {
+            font-family: 'Fira Code', monospace;
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem;
+        }
+
+        .settings-actions .btn {
+            flex: 1;
+        }
+
+        .btn-whatsapp {
+            background-color: #25d366;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2);
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #1ebd5a;
+            box-shadow: 0 6px 14px rgba(37, 211, 102, 0.3);
+        }
+
+        /* ═══════════════════════════════════════ */
+        /* Terminal Activity Logs Page */
+        /* ═══════════════════════════════════════ */
+        .logs-panel-card {
+            padding: 0;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: var(--color-muted);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            border: 1px dashed var(--border-color);
         }
 
-        .chart-placeholder i {
-            font-size: 2rem;
-            margin-bottom: 0.75rem;
-            color: var(--primary);
-            opacity: 0.6;
+        .logs-card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .logs-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .terminal-box {
+            font-family: 'Fira Code', monospace;
+            background-color: #0f172a; /* Sleek dark slate console */
+            padding: 1.25rem;
+            height: 480px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: #38bdf8; /* Light blue text */
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .terminal-line {
+            margin-bottom: 0.25rem;
+            word-break: break-all;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            padding-bottom: 0.2rem;
+        }
+
+        .terminal-line.error {
+            color: #f43f5e; /* Rose 500 */
+        }
+
+        .terminal-line.alert {
+            color: #34d399; /* Emerald 400 */
+            font-weight: 600;
         }
 
         /* ═══════════════════════════════════════ */
-        /* Toast Notifications */
+        /* Toast Notification Banner */
         /* ═══════════════════════════════════════ */
         .toast-container {
             position: fixed;
@@ -710,28 +1360,27 @@
         }
 
         .toast {
-            background: rgba(17, 24, 39, 0.95);
+            background-color: #ffffff;
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            box-shadow: 0 15px 30px rgba(15, 23, 42, 0.08);
             display: flex;
             align-items: flex-start;
             gap: 0.75rem;
-            max-width: 380px;
+            max-width: 360px;
             pointer-events: all;
-            animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             transition: var(--transition);
         }
 
         .toast.hiding {
-            animation: toastSlideOut 0.3s ease-in forwards;
+            animation: toastSlideOut 0.2s ease-in forwards;
         }
 
         @keyframes toastSlideIn {
-            from { opacity: 0; transform: translateX(100%); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateX(100%) scale(0.9); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
         }
 
         @keyframes toastSlideOut {
@@ -740,363 +1389,67 @@
         }
 
         .toast-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
-        .toast.success .toast-icon { background: var(--accent-green-glow); color: var(--accent-green); }
-        .toast.success { border-left: 3px solid var(--accent-green); }
+        .toast.success .toast-icon { background-color: var(--accent-green-light); color: var(--accent-green); }
+        .toast.success { border-left: 4px solid var(--accent-green); }
 
-        .toast.alert .toast-icon { background: var(--accent-amber-glow); color: var(--accent-amber); }
-        .toast.alert { border-left: 3px solid var(--accent-amber); }
+        .toast.alert .toast-icon { background-color: var(--accent-amber-light); color: var(--accent-amber); }
+        .toast.alert { border-left: 4px solid var(--accent-amber); }
 
-        .toast.error .toast-icon { background: var(--accent-red-glow); color: var(--accent-red); }
-        .toast.error { border-left: 3px solid var(--accent-red); }
+        .toast.error .toast-icon { background-color: var(--accent-red-light); color: var(--accent-red); }
+        .toast.error { border-left: 4px solid var(--accent-red); }
 
-        .toast.info .toast-icon { background: rgba(14, 165, 233, 0.15); color: var(--accent-blue); }
-        .toast.info { border-left: 3px solid var(--accent-blue); }
+        .toast.info .toast-icon { background-color: var(--accent-blue-light); color: var(--accent-blue); }
+        .toast.info { border-left: 4px solid var(--accent-blue); }
 
-        .toast-body { flex: 1; }
-        .toast-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.15rem; }
-        .toast-message { font-size: 0.78rem; color: var(--color-muted); line-height: 1.4; }
+        .toast-body {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.15rem;
+        }
+
+        .toast-message {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
 
         .toast-close {
             background: none;
             border: none;
-            color: var(--color-muted);
+            color: var(--text-light);
             cursor: pointer;
             font-size: 0.85rem;
-            padding: 0.25rem;
-            opacity: 0.5;
-            transition: opacity 0.2s;
-        }
-
-        .toast-close:hover { opacity: 1; }
-
-        /* ═══════════════════════════════════════ */
-        /* WhatsApp Settings Panel */
-        /* ═══════════════════════════════════════ */
-        .wa-settings-card {
-            border-top: 2px solid #25d366;
-        }
-
-        .wa-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .wa-header-left {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .wa-header-left i.fa-whatsapp {
-            color: #25d366;
-            font-size: 1.1rem;
-        }
-
-        .wa-toggle-icon {
-            color: var(--color-muted);
-            transition: transform 0.3s ease;
-            font-size: 0.8rem;
-        }
-
-        .wa-toggle-icon.open {
-            transform: rotate(180deg);
-        }
-
-        .wa-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
-            padding-top: 0;
-        }
-
-        .wa-body.open {
-            max-height: 800px;
-            padding-top: 1rem;
-        }
-
-        /* Toggle Switch */
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 1rem;
-        }
-
-        .toggle-label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .toggle-label .wa-enabled-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent-red);
-        }
-
-        .toggle-label .wa-enabled-dot.active {
-            background: #25d366;
-            box-shadow: 0 0 6px rgba(37, 211, 102, 0.5);
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-            cursor: pointer;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            border: 1px solid var(--border-color);
+            padding: 0.15rem;
+            opacity: 0.7;
             transition: var(--transition);
         }
 
-        .toggle-slider::before {
-            content: '';
-            position: absolute;
-            height: 18px;
-            width: 18px;
-            left: 2px;
-            bottom: 2px;
-            background: white;
-            border-radius: 50%;
-            transition: var(--transition);
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-            background: #25d366;
-            border-color: #25d366;
-        }
-
-        .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(20px);
-        }
-
-        .wa-setup-hint {
-            background: rgba(37, 211, 102, 0.08);
-            border: 1px solid rgba(37, 211, 102, 0.2);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 0.75rem;
-            line-height: 1.6;
-            color: var(--color-muted);
-        }
-
-        .wa-setup-hint strong {
-            color: #25d366;
-        }
-
-        .wa-setup-hint ol {
-            margin: 0.5rem 0 0 1.25rem;
-            padding: 0;
-        }
-
-        .wa-setup-hint code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0.15rem 0.35rem;
-            border-radius: 4px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.7rem;
-        }
-
-        .btn-whatsapp {
-            background: #25d366;
-            color: white;
-            border: none;
-        }
-
-        .btn-whatsapp:hover {
-            background: #20bd5a;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
-        }
-
-        .wa-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .wa-actions .btn {
-            flex: 1;
-        }
-
-        .wa-status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 0.15rem 0.5rem;
-            border-radius: 20px;
-        }
-
-        .wa-status-badge.connected {
-            background: rgba(37, 211, 102, 0.15);
-            color: #25d366;
-        }
-
-        .wa-status-badge.disconnected {
-            background: var(--accent-red-glow);
-            color: var(--accent-red);
+        .toast-close:hover {
+            color: var(--text-main);
         }
 
         /* ═══════════════════════════════════════ */
-        /* Email Settings Panel */
+        /* Responsive Mobile Tweak style overrides */
         /* ═══════════════════════════════════════ */
-        .email-settings-card {
-            border-top: 2px solid var(--primary);
-        }
-
-        .email-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .email-header-left {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .email-header-left i.fa-envelope {
-            color: var(--primary);
-            font-size: 1.1rem;
-        }
-
-        .email-toggle-icon {
-            color: var(--color-muted);
-            transition: transform 0.3s ease;
-            font-size: 0.8rem;
-        }
-
-        .email-toggle-icon.open {
-            transform: rotate(180deg);
-        }
-
-        .email-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
-            padding-top: 0;
-        }
-
-        .email-body.open {
-            max-height: 800px;
-            padding-top: 1rem;
-        }
-
-        .email-setup-hint {
-            background: rgba(139, 92, 246, 0.08);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 0.75rem;
-            line-height: 1.6;
-            color: var(--color-muted);
-        }
-
-        .email-setup-hint strong {
-            color: var(--primary);
-        }
-
-        .email-setup-hint ol {
-            margin: 0.5rem 0 0 1.25rem;
-            padding: 0;
-        }
-
-        .email-setup-hint code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0.15rem 0.35rem;
-            border-radius: 4px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.7rem;
-        }
-
-        .btn-email {
-            background: linear-gradient(135deg, var(--primary), #7c3aed);
-            color: white;
-            border: none;
-        }
-
-        .btn-email:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px var(--primary-glow);
-        }
-
-        .email-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .email-actions .btn {
-            flex: 1;
-        }
-
-        .email-status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 0.15rem 0.5rem;
-            border-radius: 20px;
-        }
-
-        .email-status-badge.connected {
-            background: rgba(139, 92, 246, 0.15);
-            color: var(--primary);
-        }
-
-        .email-status-badge.disconnected {
-            background: var(--accent-red-glow);
-            color: var(--accent-red);
-        }
-
-        /* ═══════════════════════════════════════ */
-        /* Responsive */
-        /* ═══════════════════════════════════════ */
-        @media (max-width: 768px) {
-            .container { padding: 1rem; }
-            header { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .header-right { width: 100%; justify-content: flex-end; }
-            .logo-section .logo-subtitle { display: none; }
-            .form-row { grid-template-columns: 1fr; }
-            .search-bar-container { flex-direction: column; align-items: stretch; }
+        @media (max-width: 992px) {
+            .main-panel {
+                max-height: none;
+            }
         }
     </style>
 </head>
@@ -1104,291 +1457,381 @@
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <div class="logo-section">
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation Drawer -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
                 <i class="fa-solid fa-chart-line logo-icon"></i>
-                <h1>PricePulse</h1>
-                <span class="logo-subtitle">Multi-Platform Tracker</span>
+                <span class="brand-name">PricePulse</span>
             </div>
-            <div class="header-right">
-                <div class="user-badge" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem 1.25rem; border-radius: 50px; border: 1px solid var(--border-color); font-size: 0.9rem; font-weight: 500; backdrop-filter: blur(10px);">
-                    <i class="fa-solid fa-circle-user" style="color: var(--primary); font-size: 1.1rem;"></i>
-                    <span id="username-display">Loading...</span>
-                    <span style="color: var(--border-color); margin: 0 0.25rem;">|</span>
-                    <a href="/logout" style="color: var(--color-muted); text-decoration: none; transition: var(--transition); display: flex; align-items: center; gap: 0.25rem;" onmouseover="this.style.color='var(--accent-red)'" onmouseout="this.style.color='var(--color-muted)'">
-                        <i class="fa-solid fa-right-from-bracket"></i> Logout
-                    </a>
-                </div>
-                <div class="monitor-controls">
-                    <div id="monitor-status" class="status-badge stopped">
-                        <span class="status-dot"></span>
-                        <span class="status-text">Stopped</span>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="alerts">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Alert Settings</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="logs">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span>Activity Logs</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <i class="fa-solid fa-circle-user profile-icon"></i>
+                    <div class="user-info">
+                        <span id="username-display" class="username">Loading...</span>
+                        <span class="user-role">Administrator</span>
                     </div>
-                    <button id="btn-toggle-monitor" class="btn btn-sm btn-round btn-primary">
-                        <i class="fa-solid fa-play"></i> Start Monitor
+                </div>
+                <a href="/logout" class="btn-logout" title="Sign Out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Panel Section -->
+        <main class="main-panel">
+            <!-- Header Top Bar -->
+            <header class="top-bar">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <!-- Menu hamburger toggle for tablets/mobile view -->
+                    <button class="mobile-menu-btn" id="mobile-menu-toggle">
+                        <i class="fa-solid fa-bars"></i>
                     </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Stat Cards -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fa-solid fa-box-open"></i></div>
-                <div class="stat-info">
-                    <div id="stat-total" class="stat-value">0</div>
-                    <div class="stat-label">Products Tracked</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
-                <div class="stat-info">
-                    <div id="stat-drops" class="stat-value">0</div>
-                    <div class="stat-label">Price Drops</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fa-solid fa-check-circle"></i></div>
-                <div class="stat-info">
-                    <div id="stat-instock" class="stat-value">0</div>
-                    <div class="stat-label">In Stock</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Grid -->
-        <div class="dashboard-grid">
-            <!-- Left: Add Product + Console -->
-            <div class="glass-card" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <!-- Add Product Form -->
-                <div>
-                    <h2 class="card-title"><i class="fa-solid fa-plus-circle"></i> Track Product</h2>
-                    <form id="add-product-form">
-                        <div class="form-group">
-                            <label for="prod-name">Product Name</label>
-                            <input type="text" id="prod-name" class="form-control" placeholder="e.g., Sony WH-1000XM5 Headphones" required autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label for="prod-url">Product URL</label>
-                            <input type="url" id="prod-url" class="form-control" placeholder="Paste Amazon, Flipkart, or Snapdeal link" required autocomplete="off">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="prod-price">Target Price (₹)</label>
-                                <input type="number" step="0.01" id="prod-price" class="form-control" placeholder="e.g., 1500" required autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label for="prod-platform">Platform</label>
-                                <select id="prod-platform" class="form-control">
-                                    <option value="auto">Auto-Detect</option>
-                                    <option value="amazon">Amazon</option>
-                                    <option value="flipkart">Flipkart</option>
-                                    <option value="snapdeal">Snapdeal</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="platform-hint">
-                            <i class="fa-solid fa-circle-info"></i>
-                            <span>Supported:</span>
-                            <div class="platform-icons">
-                                <span class="platform-chip chip-amazon"><i class="fa-brands fa-amazon"></i> Amazon</span>
-                                <span class="platform-chip chip-flipkart"><i class="fa-solid fa-f"></i> Flipkart</span>
-                                <span class="platform-chip chip-snapdeal"><i class="fa-solid fa-s"></i> Snapdeal</span>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                            <i class="fa-solid fa-circle-plus"></i> Add to Tracker
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Console Logs -->
-                <div>
-                    <h2 class="card-title" style="margin-bottom: 0.75rem;"><i class="fa-solid fa-terminal"></i> Activity Log</h2>
-                    <div id="terminal-box" class="terminal-box">
-                        <div class="terminal-line alert">System initialized. Waiting for commands...</div>
+                    <div class="page-header">
+                        <h1 id="page-title" class="page-title">Dashboard Overview</h1>
+                        <p id="page-subtitle" class="page-subtitle">Track and monitor your e-commerce prices in real time.</p>
                     </div>
-                </div>
-
-                <!-- WhatsApp Notification Settings -->
-                <div class="wa-settings-card">
-                    <div class="wa-header" onclick="toggleWaPanel()">
-                        <div class="wa-header-left">
-                            <i class="fa-brands fa-whatsapp"></i>
-                            <span style="font-weight: 600; font-size: 0.95rem;">WhatsApp Alerts</span>
-                            <span id="wa-status-badge" class="wa-status-badge disconnected">
-                                <i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off
-                            </span>
-                        </div>
-                        <i id="wa-toggle-icon" class="fa-solid fa-chevron-down wa-toggle-icon"></i>
-                    </div>
-                    <div id="wa-body" class="wa-body">
-                        <!-- Enable Toggle -->
-                        <div class="toggle-row">
-                            <div class="toggle-label">
-                                <span id="wa-enabled-dot" class="wa-enabled-dot"></span>
-                                Enable Notifications
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="wa-enabled">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <!-- Setup Instructions -->
-                        <div class="wa-setup-hint">
-                            <strong><i class="fa-solid fa-circle-info"></i> Setup (Free via Twilio):</strong>
-                            <ol>
-                                <li>Sign up at <code>twilio.com</code> (free trial)</li>
-                                <li>Go to <strong>Messaging → Try WhatsApp</strong></li>
-                                <li>Send <code>join &lt;sandbox-code&gt;</code> from your WhatsApp to the Twilio number</li>
-                                <li>Copy your <strong>Account SID</strong> and <strong>Auth Token</strong> below</li>
-                            </ol>
-                        </div>
-
-                        <!-- Credentials -->
-                        <div class="form-group">
-                            <label for="wa-sid">Account SID</label>
-                            <input type="text" id="wa-sid" class="form-control" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label for="wa-token">Auth Token</label>
-                            <input type="password" id="wa-token" class="form-control" placeholder="Enter token (hidden for security)" autocomplete="off">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="wa-from">From Number</label>
-                                <input type="text" id="wa-from" class="form-control" placeholder="+14155238886" autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label for="wa-to">Your WhatsApp Number</label>
-                                <input type="text" id="wa-to" class="form-control" placeholder="+91XXXXXXXXXX" autocomplete="off">
-                            </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="wa-actions">
-                            <button id="btn-wa-save" class="btn btn-whatsapp btn-sm" onclick="saveWhatsAppConfig()">
-                                <i class="fa-solid fa-floppy-disk"></i> Save
-                            </button>
-                            <button id="btn-wa-test" class="btn btn-secondary btn-sm" onclick="testWhatsApp()">
-                                <i class="fa-solid fa-paper-plane"></i> Test
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Email Notification Settings -->
-                <div class="email-settings-card">
-                    <div class="email-header" onclick="toggleEmailPanel()">
-                        <div class="email-header-left">
-                            <i class="fa-solid fa-envelope"></i>
-                            <span style="font-weight: 600; font-size: 0.95rem;">Email Alerts</span>
-                            <span id="email-status-badge" class="email-status-badge disconnected">
-                                <i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off
-                            </span>
-                        </div>
-                        <i id="email-toggle-icon" class="fa-solid fa-chevron-down email-toggle-icon"></i>
-                    </div>
-                    <div id="email-body" class="email-body">
-                        <!-- Enable Toggle -->
-                        <div class="toggle-row">
-                            <div class="toggle-label">
-                                <span id="email-enabled-dot" class="wa-enabled-dot"></span>
-                                Enable Email Notifications
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="email-enabled">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <!-- Setup Instructions -->
-                        <div class="email-setup-hint">
-                            <strong><i class="fa-solid fa-circle-info"></i> Gmail Setup:</strong>
-                            <ol>
-                                <li>Go to <code>myaccount.google.com</code> &rarr; Security</li>
-                                <li>Enable <strong>2-Step Verification</strong></li>
-                                <li>Go to <strong>App Passwords</strong> &rarr; Generate one for "Mail"</li>
-                                <li>Use the 16-char app password below (not your Gmail password)</li>
-                            </ol>
-                        </div>
-
-                        <!-- SMTP Settings -->
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="email-smtp-server">SMTP Server</label>
-                                <input type="text" id="email-smtp-server" class="form-control" placeholder="smtp.gmail.com" autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label for="email-smtp-port">Port</label>
-                                <input type="number" id="email-smtp-port" class="form-control" placeholder="587" autocomplete="off">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="email-sender">Sender Email</label>
-                            <input type="email" id="email-sender" class="form-control" placeholder="yourname@gmail.com" autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label for="email-password">App Password</label>
-                            <input type="password" id="email-password" class="form-control" placeholder="Enter app password (hidden for security)" autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label for="email-recipient">Recipient Email</label>
-                            <input type="email" id="email-recipient" class="form-control" placeholder="alerts@example.com" autocomplete="off">
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="email-actions">
-                            <button id="btn-email-save" class="btn btn-email btn-sm" onclick="saveEmailConfig()">
-                                <i class="fa-solid fa-floppy-disk"></i> Save
-                            </button>
-                            <button id="btn-email-test" class="btn btn-secondary btn-sm" onclick="testEmail()">
-                                <i class="fa-solid fa-paper-plane"></i> Test
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Graph -->
-            <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <h2 class="card-title" id="chart-card-title"><i class="fa-solid fa-chart-area"></i> Price History Graph</h2>
-                    <div class="chart-container-inner">
-                        <div id="chart-placeholder" class="chart-placeholder">
-                            <i class="fa-solid fa-chart-line"></i>
-                            <p>Select a product's <b>"History"</b> below<br>to visualize its price timeline.</p>
-                        </div>
-                        <canvas id="price-history-chart" style="display: none;"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Full Width Inventory -->
-            <div class="glass-card full-width-on-mobile">
-                <div class="search-bar-container">
-                    <h2 class="card-title" style="margin-bottom: 0; border: none; padding-bottom: 0;">
-                        <i class="fa-solid fa-boxes-stacked"></i> Tracked Inventory
-                    </h2>
-                    <div class="search-input-wrapper">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="inventory-search" class="form-control search-control" placeholder="Search products...">
-                    </div>
-                    <button id="btn-refresh" class="btn btn-ghost btn-sm" title="Refresh product list">
-                        <i class="fa-solid fa-arrows-rotate"></i> Refresh
-                    </button>
                 </div>
                 
-                <!-- Product Cards Grid -->
-                <div id="product-list" class="product-grid">
-                    <!-- Products dynamically rendered here -->
+                <div class="top-bar-right">
+                    <!-- Search Field for Inventory list filtering -->
+                    <div class="search-wrapper" id="top-search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="inventory-search" placeholder="Search product here...">
+                    </div>
+
+                    <!-- Live Scraping status toggle controls -->
+                    <div class="monitor-controller">
+                        <div id="monitor-status" class="status-badge stopped">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Stopped</span>
+                        </div>
+                        <button id="btn-toggle-monitor" class="btn btn-sm btn-round btn-primary">
+                            <i class="fa-solid fa-play"></i> Start Monitor
+                        </button>
+                    </div>
                 </div>
+            </header>
+
+            <!-- Main Layout Content Section -->
+            <div class="content-container">
+                
+                <!-- TAB 1: Dashboard overview content -->
+                <section id="tab-dashboard" class="tab-content active">
+                    
+                    <!-- Stats cards row -->
+                    <div class="stats-row">
+                        <!-- Total Products Tracked Card -->
+                        <div class="stat-card">
+                            <div class="stat-card-main">
+                                <div class="stat-info">
+                                    <div id="stat-total" class="stat-value">0</div>
+                                    <div class="stat-label">Total Products</div>
+                                </div>
+                                <div class="stat-icon bg-indigo"><i class="fa-solid fa-box-open"></i></div>
+                            </div>
+                            <div class="stat-card-footer">
+                                <span class="stat-trendText">Scraped across all platforms</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Price drops alerted Card -->
+                        <div class="stat-card">
+                            <div class="stat-card-main">
+                                <div class="stat-info">
+                                    <div id="stat-drops" class="stat-value">0</div>
+                                    <div class="stat-label">Price Drops</div>
+                                </div>
+                                <div class="stat-icon bg-green"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                            </div>
+                            <div class="stat-card-footer">
+                                <span class="stat-trendText green"><i class="fa-solid fa-fire"></i> Alert price reached</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Stock ratio card (Reference 1 style meter) -->
+                        <div class="stat-card">
+                            <div class="stat-card-main">
+                                <div class="stat-info">
+                                    <div id="stat-instock" class="stat-value">0</div>
+                                    <div class="stat-label">In Stock</div>
+                                </div>
+                                <div class="stat-icon bg-orange"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            </div>
+                            <div class="stat-card-footer">
+                                <div class="stock-meter-container">
+                                    <div class="stock-meter-labels">
+                                        <span class="lbl-instock">Available (<span id="lbl-instock-val">0</span>)</span>
+                                        <span class="lbl-outstock">Out (<span id="lbl-outstock-val">0</span>)</span>
+                                    </div>
+                                    <div class="stock-progress-bar">
+                                        <div id="stock-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upper Grid Section: Chart (65%) + Form (35%) -->
+                    <div class="dashboard-grid">
+                        <!-- Chart container -->
+                        <div class="glass-card chart-card">
+                            <div class="card-header">
+                                <h2 class="card-title" id="chart-card-title"><i class="fa-solid fa-chart-area"></i> Price History Graph</h2>
+                                <span class="card-header-badge">Timeline History</span>
+                            </div>
+                            <div class="chart-container-inner">
+                                <div id="chart-placeholder" class="chart-placeholder">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                    <p>Select a product's <b>"Chart"</b> in the table below<br>to visualize its historical price timeline.</p>
+                                </div>
+                                <canvas id="price-history-chart" style="display: none;"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Product tracking form container -->
+                        <div class="glass-card form-card">
+                            <div class="card-header">
+                                <h2 class="card-title"><i class="fa-solid fa-plus-circle"></i> Track Product</h2>
+                            </div>
+                            <form id="add-product-form">
+                                <div class="form-group">
+                                    <label for="prod-name">Product Name</label>
+                                    <input type="text" id="prod-name" class="form-control" placeholder="e.g. Sony WH-1000XM5" required autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="prod-url">Product URL</label>
+                                    <input type="url" id="prod-url" class="form-control" placeholder="Paste Amazon, Flipkart or Snapdeal link" required autocomplete="off">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="prod-price">Target Price (₹)</label>
+                                        <input type="number" step="0.01" id="prod-price" class="form-control" placeholder="e.g. 15000" required autocomplete="off">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="prod-platform">Platform</label>
+                                        <select id="prod-platform" class="form-control">
+                                            <option value="auto">Auto-Detect</option>
+                                            <option value="amazon">Amazon</option>
+                                            <option value="flipkart">Flipkart</option>
+                                            <option value="snapdeal">Snapdeal</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="platform-hint">
+                                    <span class="hint-title">Supported platforms:</span>
+                                    <div class="platform-icons">
+                                        <span class="platform-chip chip-amazon"><i class="fa-brands fa-amazon"></i> Amazon</span>
+                                        <span class="platform-chip chip-flipkart"><i class="fa-solid fa-f"></i> Flipkart</span>
+                                        <span class="platform-chip chip-snapdeal"><i class="fa-solid fa-s"></i> Snapdeal</span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.25rem;">
+                                    <i class="fa-solid fa-circle-plus"></i> Add to Tracker
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Lower Section: Inventory table listing -->
+                    <div class="glass-card table-card">
+                        <div class="table-header">
+                            <h2 class="card-title"><i class="fa-solid fa-boxes-stacked"></i> Tracked Inventory</h2>
+                            <button id="btn-refresh" class="btn btn-secondary btn-sm" title="Refresh product list">
+                                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product Name</th>
+                                        <th>Platform</th>
+                                        <th>Target Price</th>
+                                        <th>Current Price</th>
+                                        <th>Stock Status</th>
+                                        <th>Last Scraped</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="product-list">
+                                    <!-- Dynamic product rows here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: Alert notifications settings panel -->
+                <section id="tab-alerts" class="tab-content">
+                    <div class="alerts-layout-grid">
+                        
+                        <!-- WhatsApp Alerts Card -->
+                        <div class="glass-card wa-settings-card">
+                            <div class="settings-card-header">
+                                <h3><i class="fa-brands fa-whatsapp"></i> Twilio WhatsApp Notifications</h3>
+                                <span id="wa-status-badge" class="settings-status-badge disconnected">
+                                    <i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Off
+                                </span>
+                            </div>
+                            
+                            <!-- Enabled slider -->
+                            <div class="toggle-row">
+                                <div class="toggle-label">
+                                    <span id="wa-enabled-dot" style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-red); margin-right: 0.25rem; display: inline-block;"></span>
+                                    Enable WhatsApp Notifications
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="wa-enabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <!-- Instructions -->
+                            <div class="setup-hint-box wa-box">
+                                <strong><i class="fa-solid fa-circle-info"></i> Setup Sandbox (Free):</strong>
+                                <ol>
+                                    <li>Sign up at <code>twilio.com</code> and get sandbox credentials.</li>
+                                    <li>Send <code>join &lt;sandbox-code&gt;</code> from your mobile device to Twilio's default Sandbox number.</li>
+                                    <li>Copy your account values and input them below.</li>
+                                </ol>
+                            </div>
+
+                            <!-- Settings inputs -->
+                            <div class="form-group">
+                                <label for="wa-sid">Account SID</label>
+                                <input type="text" id="wa-sid" class="form-control" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="wa-token">Auth Token</label>
+                                <input type="password" id="wa-token" class="form-control" placeholder="Enter token (hidden for security)" autocomplete="off">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="wa-from">From Number</label>
+                                    <input type="text" id="wa-from" class="form-control" placeholder="whatsapp:+14155238886" autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="wa-to">Recipient WhatsApp</label>
+                                    <input type="text" id="wa-to" class="form-control" placeholder="whatsapp:+91XXXXXXXXXX" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="settings-actions">
+                                <button id="btn-wa-save" class="btn btn-whatsapp" onclick="saveWhatsAppConfig()">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Credentials
+                                </button>
+                                <button id="btn-wa-test" class="btn btn-secondary" onclick="testWhatsApp()">
+                                    <i class="fa-solid fa-paper-plane"></i> Send Test Message
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Email Alerts Card -->
+                        <div class="glass-card email-settings-card">
+                            <div class="settings-card-header">
+                                <h3><i class="fa-solid fa-envelope"></i> SMTP Email Notifications</h3>
+                                <span id="email-status-badge" class="settings-status-badge disconnected">
+                                    <i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Off
+                                </span>
+                            </div>
+
+                            <!-- Enabled slider -->
+                            <div class="toggle-row">
+                                <div class="toggle-label">
+                                    <span id="email-enabled-dot" style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-red); margin-right: 0.25rem; display: inline-block;"></span>
+                                    Enable Email Notifications
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="email-enabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <!-- Instructions -->
+                            <div class="setup-hint-box">
+                                <strong><i class="fa-solid fa-circle-info"></i> Gmail Setup Instruction:</strong>
+                                <ol>
+                                    <li>Navigate to <code>myaccount.google.com</code> &rarr; Security page.</li>
+                                    <li>Turn on <strong>2-Step Verification</strong>.</li>
+                                    <li>Search for <strong>App Passwords</strong> and create one for Mail.</li>
+                                    <li>Use this generated 16-character password below.</li>
+                                </ol>
+                            </div>
+
+                            <!-- SMTP inputs -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="email-smtp-server">SMTP Server</label>
+                                    <input type="text" id="email-smtp-server" class="form-control" placeholder="smtp.gmail.com" autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="email-smtp-port">SMTP Port</label>
+                                    <input type="number" id="email-smtp-port" class="form-control" placeholder="587" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="email-sender">Sender Email</label>
+                                <input type="email" id="email-sender" class="form-control" placeholder="yourname@gmail.com" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="email-password">App Password</label>
+                                <input type="password" id="email-password" class="form-control" placeholder="Enter app password (hidden for security)" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="email-recipient">Recipient Email</label>
+                                <input type="email" id="email-recipient" class="form-control" placeholder="alerts@example.com" autocomplete="off">
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="settings-actions">
+                                <button id="btn-email-save" class="btn btn-primary" onclick="saveEmailConfig()">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                                </button>
+                                <button id="btn-email-test" class="btn btn-secondary" onclick="testEmail()">
+                                    <i class="fa-solid fa-paper-plane"></i> Send Test Email
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: Activity logs terminal -->
+                <section id="tab-logs" class="tab-content">
+                    <div class="glass-card logs-panel-card">
+                        <div class="logs-card-header">
+                            <h2 class="card-title"><i class="fa-solid fa-terminal"></i> Activity Log Feed</h2>
+                            <span class="logs-subtitle">Track background diagnostic loops and product scraping events in real-time</span>
+                        </div>
+                        <div id="terminal-box" class="terminal-box">
+                            <div class="terminal-line alert">System initialized. Waiting for commands...</div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
-        </div>
+        </main>
     </div>
 
     <!-- Javascript -->
@@ -1418,6 +1861,71 @@
         const inputUrl = document.getElementById('prod-url');
         const inputPrice = document.getElementById('prod-price');
         const inputPlatform = document.getElementById('prod-platform');
+
+        // Sidebar and Responsive Drawer
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', () => {
+                sidebar.classList.add('mobile-open');
+                sidebarOverlay.classList.add('active');
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('mobile-open');
+                sidebarOverlay.classList.remove('active');
+            });
+        }
+
+        // ═══════════════════════════════════════
+        // Sidebar Router switching tabs
+        // ═══════════════════════════════════════
+        const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const pageTitle = document.getElementById('page-title');
+        const pageSubtitle = document.getElementById('page-subtitle');
+        const topSearchBar = document.getElementById('top-search-bar');
+        
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabId = item.getAttribute('data-tab');
+                
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                
+                tabContents.forEach(content => {
+                    if (content.id === `tab-${tabId}`) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+
+                // Close drawer on mobile
+                sidebar.classList.remove('mobile-open');
+                sidebarOverlay.classList.remove('active');
+                
+                // Update title & subtitle dynamically
+                if (tabId === 'dashboard') {
+                    pageTitle.textContent = 'Dashboard Overview';
+                    pageSubtitle.textContent = 'Track and monitor your e-commerce prices in real time.';
+                    topSearchBar.style.display = 'flex';
+                } else if (tabId === 'alerts') {
+                    pageTitle.textContent = 'Notification Channels';
+                    pageSubtitle.textContent = 'Configure WhatsApp and Email credentials to get instant price drop alerts.';
+                    topSearchBar.style.display = 'none';
+                } else if (tabId === 'logs') {
+                    pageTitle.textContent = 'Activity & Diagnostics';
+                    pageSubtitle.textContent = 'Monitor background scraper logs, errors, and system status.';
+                    topSearchBar.style.display = 'none';
+                }
+            });
+        });
 
         // ═══════════════════════════════════════
         // Toast Notification System
@@ -1454,6 +1962,10 @@
             setTimeout(() => toast.remove(), 300);
         }
 
+        // Dummy toggle panel methods to avoid breaking legacy page interactions
+        function toggleWaPanel() {}
+        function toggleEmailPanel() {}
+
         // ═══════════════════════════════════════
         // Fetch & Render Products
         // ═══════════════════════════════════════
@@ -1469,7 +1981,6 @@
         }
 
         function getDomainBadge(url, platform) {
-            // Use explicit platform if available, otherwise detect from URL
             const plat = (platform && platform !== 'auto') ? platform : detectPlatformFromUrl(url);
             const badges = {
                 amazon: '<span class="product-badge badge-amazon"><i class="fa-brands fa-amazon"></i> Amazon</span>',
@@ -1494,13 +2005,17 @@
 
             if (filtered.length === 0) {
                 productList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fa-solid fa-radar"></i>
-                        <h3>${products.length === 0 ? 'No Products Being Tracked' : 'No Matching Products'}</h3>
-                        <p>${products.length === 0 
-                            ? 'Start by adding a product URL from Amazon, Flipkart, or Snapdeal using the form above.' 
-                            : 'Try a different search term to find your tracked products.'}</p>
-                    </div>
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <h3>${products.length === 0 ? 'No Products Being Tracked' : 'No Matching Products'}</h3>
+                                <p>${products.length === 0 
+                                    ? 'Start by adding a product URL from Amazon, Flipkart, or Snapdeal using the form to the right.' 
+                                    : 'Try a different search term to find your tracked products.'}</p>
+                            </div>
+                        </td>
+                    </tr>
                 `;
                 return;
             }
@@ -1509,61 +2024,76 @@
                 const priceMatchClass = (p.price && p.price <= p.target_price) ? 'alert-match' : '';
                 const stockText = p.stock ? 'In Stock' : 'Out of Stock';
                 const stockClass = p.stock ? 'in-stock' : 'out-of-stock';
-                const stockIcon = p.stock ? 'fa-check' : 'fa-circle-exclamation';
+                const stockIcon = p.stock ? 'fa-circle-check' : 'fa-circle-exclamation';
                 const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 
                 return `
-                    <div class="product-card" id="prod-card-${p.id}">
-                        <div class="product-card-header">
-                            <h3 class="product-name" title="${p.name}">${p.name}</h3>
+                    <tr id="prod-row-${p.id}">
+                        <td>
+                            <div class="product-info-cell">
+                                <span class="product-name" title="${p.name}">${p.name}</span>
+                                <a href="${p.url}" target="_blank" class="product-link-btn" title="Open product URL">
+                                    Visit Site <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                            </div>
+                        </td>
+                        <td>
                             ${getDomainBadge(p.url, p.platform)}
-                        </div>
-                        <div class="product-details">
-                            <div class="price-row">
-                                <span class="price-label">Current Price</span>
-                                <span class="price-value ${priceMatchClass}">
-                                    ${p.price ? '₹' + p.price.toLocaleString('en-IN') : '<span style="color: var(--color-muted); font-size: 0.85rem;">Awaiting scrape...</span>'}
-                                </span>
+                        </td>
+                        <td>
+                            <span class="price-badge-target">₹${p.target_price.toLocaleString('en-IN')}</span>
+                        </td>
+                        <td>
+                            <span class="price-badge-current ${priceMatchClass}">
+                                ${p.price ? '₹' + p.price.toLocaleString('en-IN') : '<span class="awaiting-scrape">Awaiting scrape...</span>'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="product-stock ${stockClass}">
+                                <i class="fa-solid ${stockIcon}"></i> ${stockText}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="product-updated-cell">${p.last_updated ? p.last_updated : 'Not scraped yet'}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="table-actions">
+                                <button onclick="loadProductChart(${p.id}, '${escapedName}')" class="btn btn-secondary btn-sm" title="Show Price Trend">
+                                    <i class="fa-solid fa-chart-line"></i> Chart
+                                </button>
+                                <button onclick="deleteProduct(${p.id})" class="btn btn-delete btn-sm" title="Delete Product">
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </button>
                             </div>
-                            <div class="price-row">
-                                <span class="price-label">Target Alert</span>
-                                <span class="target-price-value">₹${p.target_price.toLocaleString('en-IN')}</span>
-                            </div>
-                            <div class="product-meta">
-                                <span class="product-stock ${stockClass}">
-                                    <i class="fa-solid ${stockIcon}"></i> ${stockText}
-                                </span>
-                                <span class="product-updated">
-                                    ${p.last_updated ? p.last_updated : 'Not scraped yet'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="product-card-actions">
-                            <button onclick="loadProductChart(${p.id}, '${escapedName}')" class="btn btn-secondary btn-sm">
-                                <i class="fa-solid fa-chart-line"></i> History
-                            </button>
-                            <a href="${p.url}" target="_blank" class="btn btn-primary btn-sm">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit
-                            </a>
-                            <button onclick="deleteProduct(${p.id})" class="btn btn-delete btn-sm" title="Delete Product">
-                                <i class="fa-regular fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
                 `;
             }).join('');
         }
 
         // ═══════════════════════════════════════
-        // Stats
+        // Stats Metrics Animation & stock Ratio calculation
         // ═══════════════════════════════════════
         async function fetchStats() {
             try {
                 const res = await fetch('/api/stats');
                 const stats = await res.json();
+                
                 animateStatValue('stat-total', stats.total_products);
                 animateStatValue('stat-drops', stats.price_drops);
                 animateStatValue('stat-instock', stats.in_stock);
+
+                // Update stock ratio distribution indicators
+                const total = stats.total_products;
+                const instock = stats.in_stock;
+                const outstock = total - instock;
+                
+                document.getElementById('lbl-instock-val').textContent = instock;
+                document.getElementById('lbl-outstock-val').textContent = outstock >= 0 ? outstock : 0;
+                
+                const percentage = total > 0 ? (instock / total) * 100 : 0;
+                document.getElementById('stock-progress-fill').style.width = `${percentage}%`;
+                
             } catch (err) {
                 console.error("Error fetching stats:", err);
             }
@@ -1591,7 +2121,7 @@
         }
 
         // ═══════════════════════════════════════
-        // Terminal Log
+        // Terminal log writing callback
         // ═══════════════════════════════════════
         function writeLog(message, type = "normal") {
             const line = document.createElement('div');
@@ -1602,7 +2132,7 @@
         }
 
         // ═══════════════════════════════════════
-        // Add Product
+        // Add Product Form
         // ═══════════════════════════════════════
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1634,7 +2164,7 @@
             }
         });
 
-        // Auto-detect platform when URL is pasted
+        // Auto platform identifier selection on paste
         inputUrl.addEventListener('input', () => {
             const url = inputUrl.value.trim().toLowerCase();
             if (url.includes('amazon.')) inputPlatform.value = 'amazon';
@@ -1667,7 +2197,7 @@
         }
 
         // ═══════════════════════════════════════
-        // Chart
+        // Chart.js Price history trends graph
         // ═══════════════════════════════════════
         function resetChart() {
             activeProductId = null;
@@ -1675,7 +2205,7 @@
             chartPlaceholder.style.display = 'flex';
             chartPlaceholder.innerHTML = `
                 <i class="fa-solid fa-chart-line"></i>
-                <p>Select a product's <b>"History"</b> below<br>to visualize its price timeline.</p>
+                <p>Select a product's <b>"Chart"</b> in the table below<br>to visualize its historical price timeline.</p>
             `;
             chartCanvas.style.display = 'none';
             chartCardTitle.innerHTML = `<i class="fa-solid fa-chart-area"></i> Price History Graph`;
@@ -1687,7 +2217,7 @@
             activeProductName = name;
             chartPlaceholder.style.display = 'none';
             chartCanvas.style.display = 'block';
-            chartCardTitle.innerHTML = `<i class="fa-solid fa-chart-area"></i> Price Trend: <span style="color: var(--primary);">${name}</span>`;
+            chartCardTitle.innerHTML = `<i class="fa-solid fa-chart-area"></i> Price Trend: <span style="color: var(--primary); font-weight: 700;">${name}</span>`;
 
             try {
                 const res = await fetch(`/api/products/${id}/history`);
@@ -1704,7 +2234,6 @@
                 }
 
                 const labels = history.map(h => {
-                    // Format timestamp nicely
                     const parts = h.timestamp.split(' ');
                     return parts.length > 1 ? parts[1].substring(0, 5) : h.timestamp;
                 });
@@ -1714,8 +2243,8 @@
 
                 const ctx = chartCanvas.getContext('2d');
                 const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                gradient.addColorStop(0, 'rgba(139, 92, 246, 0.35)');
-                gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.25)'); // Indigo glow
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.00)');
 
                 currentChart = new Chart(ctx, {
                     type: 'line',
@@ -1724,17 +2253,19 @@
                         datasets: [{
                             label: 'Price (₹)',
                             data: dataPoints,
-                            borderColor: '#8b5cf6',
-                            borderWidth: 2.5,
+                            borderColor: '#6366f1',
+                            borderWidth: 3,
                             backgroundColor: gradient,
                             fill: true,
                             tension: 0.4,
-                            pointBackgroundColor: '#8b5cf6',
+                            pointBackgroundColor: '#6366f1',
                             pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1.5,
-                            pointRadius: 3,
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
                             pointHoverRadius: 6,
-                            pointHoverBackgroundColor: '#a78bfa',
+                            pointHoverBackgroundColor: '#4f46e5',
+                            pointHoverBorderColor: '#ffffff',
+                            pointHoverBorderWidth: 2
                         }]
                     },
                     options: {
@@ -1745,26 +2276,25 @@
                             legend: { display: false },
                             tooltip: {
                                 padding: 12,
-                                backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                                borderColor: 'rgba(139, 92, 246, 0.3)',
-                                borderWidth: 1,
-                                titleFont: { family: 'Outfit', weight: '600', size: 13 },
-                                bodyFont: { family: 'Outfit', size: 12 },
+                                backgroundColor: '#1e293b',
+                                titleFont: { family: 'Plus Jakarta Sans', weight: '700', size: 12 },
+                                bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+                                cornerRadius: 8,
                                 callbacks: {
-                                    label: ctx => `₹${ctx.parsed.y.toLocaleString('en-IN')}`
+                                    label: ctx => ` Price: ₹${ctx.parsed.y.toLocaleString('en-IN')}`
                                 }
                             }
                         },
                         scales: {
                             x: {
-                                grid: { color: 'rgba(255, 255, 255, 0.04)' },
-                                ticks: { color: '#9ca3af', font: { family: 'Outfit', size: 10 }, maxRotation: 45 }
+                                grid: { display: false },
+                                ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans', size: 10 } }
                             },
                             y: {
-                                grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                                grid: { color: '#f1f5f9' },
                                 ticks: {
-                                    color: '#9ca3af',
-                                    font: { family: 'Outfit', size: 10 },
+                                    color: '#64748b',
+                                    font: { family: 'Plus Jakarta Sans', size: 10 },
                                     callback: v => '₹' + v.toLocaleString('en-IN')
                                 }
                             }
@@ -1845,7 +2375,6 @@
                         if (logLine.includes("ALERT:")) {
                             line.classList.add('alert');
                             
-                            // Show toast for new ALERT lines (price drops / back in stock)
                             if (!previousAlerts.has(logLine)) {
                                 previousAlerts.add(logLine);
                                 if (logLine.includes("dropped to")) {
@@ -1887,9 +2416,7 @@
         spinStyle.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
         document.head.appendChild(spinStyle);
 
-        // ═══════════════════════════════════════
-        // Search filter
-        // ═══════════════════════════════════════
+        // Search filtering triggers
         inventorySearch.addEventListener('input', () => {
             renderProducts(allProducts);
         });
@@ -1897,8 +2424,6 @@
         // ═══════════════════════════════════════
         // WhatsApp Settings
         // ═══════════════════════════════════════
-        const waBody = document.getElementById('wa-body');
-        const waToggleIcon = document.getElementById('wa-toggle-icon');
         const waEnabled = document.getElementById('wa-enabled');
         const waEnabledDot = document.getElementById('wa-enabled-dot');
         const waStatusBadge = document.getElementById('wa-status-badge');
@@ -1907,20 +2432,15 @@
         const waFrom = document.getElementById('wa-from');
         const waTo = document.getElementById('wa-to');
 
-        function toggleWaPanel() {
-            waBody.classList.toggle('open');
-            waToggleIcon.classList.toggle('open');
-        }
-
         function updateWaStatusUI(enabled) {
             if (enabled) {
-                waStatusBadge.className = 'wa-status-badge connected';
-                waStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Active';
-                waEnabledDot.classList.add('active');
+                waStatusBadge.className = 'settings-status-badge connected';
+                waStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Active';
+                waEnabledDot.style.backgroundColor = 'var(--accent-green)';
             } else {
-                waStatusBadge.className = 'wa-status-badge disconnected';
-                waStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off';
-                waEnabledDot.classList.remove('active');
+                waStatusBadge.className = 'settings-status-badge disconnected';
+                waStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Off';
+                waEnabledDot.style.backgroundColor = 'var(--accent-red)';
             }
         }
 
@@ -1946,7 +2466,6 @@
                 from_number: waFrom.value.trim(),
                 to_number: waTo.value.trim(),
             };
-            // Only send token if user entered a new one
             if (waToken.value.trim()) {
                 config.auth_token = waToken.value.trim();
             }
@@ -1980,7 +2499,7 @@
                 const res = await fetch('/api/whatsapp/test', { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
-                    showToast('✅ Test Sent!', 'Check your WhatsApp for the test message.', 'success');
+                    showToast('Test Sent!', 'Check your WhatsApp for the test message.', 'success');
                 } else {
                     showToast('Test Failed', data.error || data.message || 'Could not send message.', 'error');
                 }
@@ -1988,7 +2507,7 @@
                 showToast('Connection Error', 'Could not reach the server.', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Test';
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Test Message';
             }
         }
 
@@ -1999,8 +2518,6 @@
         // ═══════════════════════════════════════
         // Email Settings
         // ═══════════════════════════════════════
-        const emailBody = document.getElementById('email-body');
-        const emailToggleIcon = document.getElementById('email-toggle-icon');
         const emailEnabled = document.getElementById('email-enabled');
         const emailEnabledDot = document.getElementById('email-enabled-dot');
         const emailStatusBadge = document.getElementById('email-status-badge');
@@ -2010,20 +2527,15 @@
         const emailPassword = document.getElementById('email-password');
         const emailRecipient = document.getElementById('email-recipient');
 
-        function toggleEmailPanel() {
-            emailBody.classList.toggle('open');
-            emailToggleIcon.classList.toggle('open');
-        }
-
         function updateEmailStatusUI(enabled) {
             if (enabled) {
-                emailStatusBadge.className = 'email-status-badge connected';
-                emailStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Active';
-                emailEnabledDot.classList.add('active');
+                emailStatusBadge.className = 'settings-status-badge connected';
+                emailStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Active';
+                emailEnabledDot.style.backgroundColor = 'var(--accent-green)';
             } else {
-                emailStatusBadge.className = 'email-status-badge disconnected';
-                emailStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off';
-                emailEnabledDot.classList.remove('active');
+                emailStatusBadge.className = 'settings-status-badge disconnected';
+                emailStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Off';
+                emailEnabledDot.style.backgroundColor = 'var(--accent-red)';
             }
         }
 
@@ -2092,7 +2604,7 @@
                 showToast('Connection Error', 'Could not reach the server.', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Test';
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Test Email';
             }
         }
 
@@ -2101,7 +2613,7 @@
         });
 
         // ═══════════════════════════════════════
-        // Initialize
+        // User Authentication Verification
         // ═══════════════════════════════════════
         async function fetchUserStatus() {
             try {
@@ -2117,6 +2629,7 @@
             }
         }
 
+        // Initialization calls
         fetchUserStatus();
         fetchProducts();
         fetchStats();
@@ -2124,7 +2637,7 @@
         loadWhatsAppConfig();
         loadEmailConfig();
 
-        // Polling intervals
+        // Background sync polling intervals
         setInterval(fetchProducts, 15000);
         setInterval(fetchStats, 15000);
         setInterval(pollStatus, 2000);
