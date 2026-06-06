@@ -12,7 +12,7 @@ pinned: false
 
 <p align="center">
   <a href="https://huggingface.co/spaces/chander01/Price-pulse" target="_blank">
-    <img src="https://img.shields.io/badge/%F0%9F%A5%97%20Hugging%20Face-Space-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"/>
+    <img src="https://img.shields.io/badge/Hugging%20Face-Space-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"/>
   </a>
   <img src="https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask&logoColor=white"/>
@@ -24,6 +24,33 @@ pinned: false
 <p align="center">
   Track product prices across <strong>Amazon</strong>, <strong>Flipkart</strong>, and <strong>Snapdeal</strong> — all from a single sleek, professional dashboard. Get instant <strong>WhatsApp & Email alerts</strong> when prices drop to your target! 🔥
 </p>
+
+---
+
+## 📸 App Preview
+
+<table width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <strong>🔐 Elegant Login Interface</strong><br/>
+      <img src="assets/login.png" alt="Login Screen" width="100%"/>
+    </td>
+    <td width="50%" align="center">
+      <strong>📊 Interactive Admin Dashboard</strong><br/>
+      <img src="assets/dashboard.png" alt="Dashboard Screen" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <strong>💬 Multi-Channel Alert Settings</strong><br/>
+      <img src="assets/alerts.png" alt="Alert Settings Screen" width="100%"/>
+    </td>
+    <td width="50%" align="center">
+      <strong>📈 Real-time Scraper Activity Logs</strong><br/>
+      <img src="assets/activity.png" alt="Activity Logs Screen" width="100%"/>
+    </td>
+  </tr>
+</table>
 
 ---
 
