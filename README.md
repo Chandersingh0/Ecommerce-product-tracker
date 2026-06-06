@@ -11,6 +11,9 @@ pinned: false
 # 🛒 PricePulse — Premium Multi-Platform Price Tracker
 
 <p align="center">
+  <a href="https://huggingface.co/spaces/chander01/Price-pulse" target="_blank">
+    <img src="https://img.shields.io/badge/%F0%9F%A5%97%20Hugging%20Face-Space-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"/>
+  </a>
   <img src="https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask&logoColor=white"/>
   <img src="https://img.shields.io/badge/Docker-Compatible-blue?style=for-the-badge&logo=docker&logoColor=white"/>
@@ -100,6 +103,9 @@ Configure your alert channels directly inside the **"Alert Settings"** tab in th
 ---
 
 ## 🐳 Hugging Face Spaces Deployment
+
+The live application is deployed and available on Hugging Face Spaces:
+👉 **[Live Demo on Hugging Face Spaces](https://huggingface.co/spaces/chander01/Price-pulse)**
 
 This project is configured out-of-the-box to run as a **Hugging Face Space** using the custom Docker SDK. 
 
