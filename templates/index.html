@@ -971,6 +971,123 @@
         }
 
         /* ═══════════════════════════════════════ */
+        /* Email Settings Panel */
+        /* ═══════════════════════════════════════ */
+        .email-settings-card {
+            border-top: 2px solid var(--primary);
+        }
+
+        .email-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .email-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .email-header-left i.fa-envelope {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .email-toggle-icon {
+            color: var(--color-muted);
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .email-toggle-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .email-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            padding-top: 0;
+        }
+
+        .email-body.open {
+            max-height: 800px;
+            padding-top: 1rem;
+        }
+
+        .email-setup-hint {
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: var(--color-muted);
+        }
+
+        .email-setup-hint strong {
+            color: var(--primary);
+        }
+
+        .email-setup-hint ol {
+            margin: 0.5rem 0 0 1.25rem;
+            padding: 0;
+        }
+
+        .email-setup-hint code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.15rem 0.35rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+        }
+
+        .btn-email {
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            color: white;
+            border: none;
+        }
+
+        .btn-email:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .email-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .email-actions .btn {
+            flex: 1;
+        }
+
+        .email-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+        }
+
+        .email-status-badge.connected {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--primary);
+        }
+
+        .email-status-badge.disconnected {
+            background: var(--accent-red-glow);
+            color: var(--accent-red);
+        }
+
+        /* ═══════════════════════════════════════ */
         /* Responsive */
         /* ═══════════════════════════════════════ */
         @media (max-width: 768px) {
@@ -1150,6 +1267,78 @@
                                 <i class="fa-solid fa-floppy-disk"></i> Save
                             </button>
                             <button id="btn-wa-test" class="btn btn-secondary btn-sm" onclick="testWhatsApp()">
+                                <i class="fa-solid fa-paper-plane"></i> Test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Notification Settings -->
+                <div class="email-settings-card">
+                    <div class="email-header" onclick="toggleEmailPanel()">
+                        <div class="email-header-left">
+                            <i class="fa-solid fa-envelope"></i>
+                            <span style="font-weight: 600; font-size: 0.95rem;">Email Alerts</span>
+                            <span id="email-status-badge" class="email-status-badge disconnected">
+                                <i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off
+                            </span>
+                        </div>
+                        <i id="email-toggle-icon" class="fa-solid fa-chevron-down email-toggle-icon"></i>
+                    </div>
+                    <div id="email-body" class="email-body">
+                        <!-- Enable Toggle -->
+                        <div class="toggle-row">
+                            <div class="toggle-label">
+                                <span id="email-enabled-dot" class="wa-enabled-dot"></span>
+                                Enable Email Notifications
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="email-enabled">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Setup Instructions -->
+                        <div class="email-setup-hint">
+                            <strong><i class="fa-solid fa-circle-info"></i> Gmail Setup:</strong>
+                            <ol>
+                                <li>Go to <code>myaccount.google.com</code> &rarr; Security</li>
+                                <li>Enable <strong>2-Step Verification</strong></li>
+                                <li>Go to <strong>App Passwords</strong> &rarr; Generate one for "Mail"</li>
+                                <li>Use the 16-char app password below (not your Gmail password)</li>
+                            </ol>
+                        </div>
+
+                        <!-- SMTP Settings -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email-smtp-server">SMTP Server</label>
+                                <input type="text" id="email-smtp-server" class="form-control" placeholder="smtp.gmail.com" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="email-smtp-port">Port</label>
+                                <input type="number" id="email-smtp-port" class="form-control" placeholder="587" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="email-sender">Sender Email</label>
+                            <input type="email" id="email-sender" class="form-control" placeholder="yourname@gmail.com" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-password">App Password</label>
+                            <input type="password" id="email-password" class="form-control" placeholder="Enter app password (hidden for security)" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-recipient">Recipient Email</label>
+                            <input type="email" id="email-recipient" class="form-control" placeholder="alerts@example.com" autocomplete="off">
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="email-actions">
+                            <button id="btn-email-save" class="btn btn-email btn-sm" onclick="saveEmailConfig()">
+                                <i class="fa-solid fa-floppy-disk"></i> Save
+                            </button>
+                            <button id="btn-email-test" class="btn btn-secondary btn-sm" onclick="testEmail()">
                                 <i class="fa-solid fa-paper-plane"></i> Test
                             </button>
                         </div>
@@ -1800,12 +1989,117 @@
         });
 
         // ═══════════════════════════════════════
+        // Email Settings
+        // ═══════════════════════════════════════
+        const emailBody = document.getElementById('email-body');
+        const emailToggleIcon = document.getElementById('email-toggle-icon');
+        const emailEnabled = document.getElementById('email-enabled');
+        const emailEnabledDot = document.getElementById('email-enabled-dot');
+        const emailStatusBadge = document.getElementById('email-status-badge');
+        const emailSmtpServer = document.getElementById('email-smtp-server');
+        const emailSmtpPort = document.getElementById('email-smtp-port');
+        const emailSender = document.getElementById('email-sender');
+        const emailPassword = document.getElementById('email-password');
+        const emailRecipient = document.getElementById('email-recipient');
+
+        function toggleEmailPanel() {
+            emailBody.classList.toggle('open');
+            emailToggleIcon.classList.toggle('open');
+        }
+
+        function updateEmailStatusUI(enabled) {
+            if (enabled) {
+                emailStatusBadge.className = 'email-status-badge connected';
+                emailStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Active';
+                emailEnabledDot.classList.add('active');
+            } else {
+                emailStatusBadge.className = 'email-status-badge disconnected';
+                emailStatusBadge.innerHTML = '<i class="fa-solid fa-circle" style="font-size: 0.4rem;"></i> Off';
+                emailEnabledDot.classList.remove('active');
+            }
+        }
+
+        async function loadEmailConfig() {
+            try {
+                const res = await fetch('/api/email/config');
+                const config = await res.json();
+                emailEnabled.checked = config.enabled;
+                emailSmtpServer.value = config.smtp_server || '';
+                emailSmtpPort.value = config.smtp_port || 587;
+                emailSender.value = config.sender_email || '';
+                emailRecipient.value = config.recipient_email || '';
+                emailPassword.placeholder = config.password_set ? '•••••••• (saved, enter new to change)' : 'Enter your App Password';
+                updateEmailStatusUI(config.enabled);
+            } catch (err) {
+                console.error('Error loading email config:', err);
+            }
+        }
+
+        async function saveEmailConfig() {
+            const config = {
+                enabled: emailEnabled.checked,
+                smtp_server: emailSmtpServer.value.trim(),
+                smtp_port: parseInt(emailSmtpPort.value) || 587,
+                sender_email: emailSender.value.trim(),
+                recipient_email: emailRecipient.value.trim(),
+            };
+            if (emailPassword.value.trim()) {
+                config.sender_password = emailPassword.value.trim();
+            }
+
+            try {
+                const res = await fetch('/api/email/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Email Settings Saved', config.enabled ? 'Email notifications are now active.' : 'Email notifications are disabled.', config.enabled ? 'success' : 'info');
+                    updateEmailStatusUI(config.enabled);
+                    emailPassword.value = '';
+                    emailPassword.placeholder = '•••••••• (saved, enter new to change)';
+                } else {
+                    showToast('Error', data.error || 'Failed to save settings.', 'error');
+                }
+            } catch (err) {
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            }
+        }
+
+        async function testEmail() {
+            const btn = document.getElementById('btn-email-test');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+            try {
+                const res = await fetch('/api/email/test', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Test Email Sent!', 'Check your inbox for the test email.', 'success');
+                } else {
+                    showToast('Test Failed', data.error || data.message || 'Could not send email.', 'error');
+                }
+            } catch (err) {
+                showToast('Connection Error', 'Could not reach the server.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Test';
+            }
+        }
+
+        emailEnabled.addEventListener('change', () => {
+            updateEmailStatusUI(emailEnabled.checked);
+        });
+
+        // ═══════════════════════════════════════
         // Initialize
         // ═══════════════════════════════════════
         fetchProducts();
         fetchStats();
         pollStatus();
         loadWhatsAppConfig();
+        loadEmailConfig();
 
         // Polling intervals
         setInterval(fetchProducts, 15000);

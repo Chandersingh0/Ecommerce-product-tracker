@@ -10,6 +10,9 @@ products.db
 # WhatsApp credentials — NEVER commit this (contains your Twilio tokens)
 whatsapp_config.json
 
+# Email credentials — NEVER commit this (contains SMTP password)
+email_config.json
+
 # Virtual environment
 venv/
 env/
