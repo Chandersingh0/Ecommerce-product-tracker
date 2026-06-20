@@ -143,59 +143,65 @@ def send_whatsapp(message, user_id):
         return False, str(e)
 
 # ═══════════════════════════════════════════════════════════════
-# Email Notification Config (SMTP)
+# Email Notification Config (Simplified)
 # ═══════════════════════════════════════════════════════════════
-EMAIL_CONFIG_FILE = "email_config.json"
+# SMTP credentials are set ONCE via environment variables (or .env file).
+# Users only need to enter their email address in the UI.
+#
+# Required env vars:
+#   SMTP_SERVER   — e.g. smtp.gmail.com  (default: smtp.gmail.com)
+#   SMTP_PORT     — e.g. 587             (default: 587)
+#   SMTP_EMAIL    — sender email address
+#   SMTP_PASSWORD — sender app password  (Gmail: use App Password)
 
-DEFAULT_EMAIL_CONFIG = {
-    "enabled": False,
-    "smtp_server": "smtp.gmail.com",
-    "smtp_port": 587,
-    "sender_email": "",
-    "sender_password": "",     # App password for Gmail
-    "recipient_email": "",
-}
+# Try loading .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, rely on system env vars
+
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+
+
+def is_smtp_configured():
+    """Check if the app-level SMTP credentials are set."""
+    return bool(SMTP_EMAIL and SMTP_PASSWORD)
 
 
 def load_email_config(user_id):
-    """Load email config from SQLite database."""
+    """Load user's notification email from database."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT email_enabled as enabled, email_smtp_server as smtp_server,
-               email_smtp_port as smtp_port, email_sender as sender_email,
-               email_password as sender_password, email_recipient as recipient_email
+        SELECT email_enabled as enabled, email_recipient as recipient_email
         FROM user_configs WHERE user_id=?
     """, (user_id,))
     row = cursor.fetchone()
     conn.close()
 
     if row:
-        config = dict(row)
-        config["enabled"] = bool(config["enabled"])
-        return config
-    return DEFAULT_EMAIL_CONFIG.copy()
+        return {
+            "enabled": bool(row["enabled"]),
+            "recipient_email": row["recipient_email"] or "",
+        }
+    return {"enabled": False, "recipient_email": ""}
 
 
 def save_email_config(config, user_id):
-    """Save email config to SQLite database."""
+    """Save user's notification email to database."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_configs SET
             email_enabled=?,
-            email_smtp_server=?,
-            email_smtp_port=?,
-            email_sender=?,
-            email_password=?,
             email_recipient=?
         WHERE user_id=?
     """, (
         1 if config.get("enabled") else 0,
-        config.get("smtp_server", "smtp.gmail.com"),
-        int(config.get("smtp_port", 587)),
-        config.get("sender_email", ""),
-        config.get("sender_password", ""),
         config.get("recipient_email", ""),
         user_id
     ))
@@ -204,24 +210,26 @@ def save_email_config(config, user_id):
 
 
 def send_email(subject, body, user_id):
-    """Send an email notification via SMTP for the specified user."""
+    """Send an email notification via SMTP.
+    
+    SMTP credentials come from environment variables.
+    Only the recipient email is per-user (stored in DB).
+    """
     config = load_email_config(user_id)
 
     if not config.get("enabled"):
         return False, "Email notifications are disabled."
 
-    smtp_server = config.get("smtp_server", "").strip()
-    smtp_port = int(config.get("smtp_port", 587))
-    sender = config.get("sender_email", "").strip()
-    password = config.get("sender_password", "").strip()
     recipient = config.get("recipient_email", "").strip()
+    if not recipient:
+        return False, "No notification email set."
 
-    if not all([smtp_server, sender, password, recipient]):
-        return False, "Email config is incomplete."
+    if not is_smtp_configured():
+        return False, "Email service not configured. Ask the admin to set SMTP_EMAIL and SMTP_PASSWORD environment variables."
 
     try:
         msg = MIMEMultipart("alternative")
-        msg["From"] = f"PricePulse <{sender}>"
+        msg["From"] = f"PricePulse <{SMTP_EMAIL}>"
         msg["To"] = recipient
         msg["Subject"] = subject
 
@@ -246,18 +254,18 @@ def send_email(subject, body, user_id):
         """
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15) as server:
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(sender, password)
-            server.sendmail(sender, recipient, msg.as_string())
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.sendmail(SMTP_EMAIL, recipient, msg.as_string())
 
         log_user_activity(user_id, f"Email sent: {subject}", "ALERT")
         return True, "Email sent successfully."
 
     except smtplib.SMTPAuthenticationError:
-        error_msg = "SMTP authentication failed. Check your email/password (use App Password for Gmail)."
+        error_msg = "SMTP authentication failed. Admin should check SMTP_EMAIL/SMTP_PASSWORD env vars."
         log_user_activity(user_id, f"Email auth error: {error_msg}", "ERROR")
         return False, error_msg
     except Exception as e:
@@ -269,7 +277,7 @@ HEADERS_POOL = [
     {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Connection": "keep-alive",
         "DNT": "1",
@@ -277,7 +285,7 @@ HEADERS_POOL = [
     {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
         "Accept-Language": "en-US,en;q=0.5",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Connection": "keep-alive",
     },
@@ -426,7 +434,7 @@ def init_db():
         )
     """)
 
-    # Create products table with user_id
+    # Create products table with user_id and is_active flag
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -435,6 +443,7 @@ def init_db():
             url TEXT NOT NULL,
             target_price REAL NOT NULL,
             platform TEXT DEFAULT 'auto',
+            is_active INTEGER DEFAULT 1,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
@@ -470,6 +479,13 @@ def init_db():
     except sqlite3.OperationalError:
         cursor.execute("ALTER TABLE products ADD COLUMN user_id INTEGER DEFAULT 1")
         log_activity("DB: Migrated — added 'user_id' column to products.")
+
+    # Migration: add is_active column to products if missing
+    try:
+        cursor.execute("SELECT is_active FROM products LIMIT 1")
+    except sqlite3.OperationalError:
+        cursor.execute("ALTER TABLE products ADD COLUMN is_active INTEGER DEFAULT 1")
+        log_activity("DB: Migrated — added 'is_active' column to products.")
 
     # Check and create default user if none exists (for legacy single-user data migration)
     cursor.execute("SELECT COUNT(*) as count FROM users")
@@ -591,13 +607,160 @@ def clean_price(text):
 # ═══════════════════════════════════════════════════════════════
 # Platform-Specific Scrapers
 # ═══════════════════════════════════════════════════════════════
-def scrape_amazon(url, retries=2):
-    """Scrape product price and stock from Amazon using Playwright headless browser.
+def _extract_json_ld_price(soup):
+    """Extract price from JSON-LD structured data (schema.org Product markup).
     
-    Uses a real Chromium browser to bypass Amazon's JS-based bot detection.
-    The browser executes JavaScript, handles redirects, and renders the full page
-    before we extract the price from the DOM.
+    This is the most reliable extraction method since sites serve structured
+    data for search engines (Google, Bing) and rarely block it.
+    Returns (price, in_stock) or (None, None) if not found.
     """
+    for script in soup.find_all("script", {"type": "application/ld+json"}):
+        try:
+            if not script.string:
+                continue
+            ld_data = json.loads(script.string)
+            items = ld_data if isinstance(ld_data, list) else [ld_data]
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                item_type = item.get("@type", "")
+                if item_type not in ("Product", "IndividualProduct"):
+                    # Check inside @graph arrays
+                    if "@graph" in item:
+                        for graph_item in item["@graph"]:
+                            if isinstance(graph_item, dict) and graph_item.get("@type") in ("Product", "IndividualProduct"):
+                                item = graph_item
+                                break
+                        else:
+                            continue
+                    else:
+                        continue
+
+                offers = item.get("offers", {})
+                if isinstance(offers, list):
+                    offers = offers[0] if offers else {}
+                if isinstance(offers, dict):
+                    # AggregateOffer → get lowPrice
+                    if offers.get("@type") == "AggregateOffer":
+                        p = offers.get("lowPrice") or offers.get("price")
+                    else:
+                        p = offers.get("price") or offers.get("lowPrice")
+                    if p is not None:
+                        price = float(p)
+                        # Check stock from JSON-LD availability
+                        availability = str(offers.get("availability", "")).lower()
+                        in_stock = "outofstock" not in availability and "discontinued" not in availability
+                        return price, in_stock
+        except (json.JSONDecodeError, ValueError, TypeError, KeyError):
+            continue
+    return None, None
+
+
+def _extract_price_from_html(soup, page_text=""):
+    """Fallback: extract price by scanning HTML for ₹ currency patterns.
+    Returns (price, in_stock) or (None, True).
+    """
+    price = None
+
+    # Look for common price-related classes/selectors
+    for tag in soup.find_all(["span", "div", "p"], class_=re.compile(r"price|Price|amount|Amount", re.I)):
+        candidate = clean_price(tag.get_text())
+        if candidate and candidate > 0:
+            price = candidate
+            break
+
+    # Regex scan for ₹ price patterns in entire HTML
+    if price is None and page_text:
+        price_pattern = re.findall(r'[₹₨]\s*([\d,]+(?:\.\d{1,2})?)', page_text)
+        if price_pattern:
+            from collections import Counter
+            price_counts = Counter(price_pattern)
+            most_common = price_counts.most_common(1)[0][0]
+            price = clean_price(most_common)
+
+    # Stock detection (generic)
+    text_lower = soup.get_text().lower()
+    in_stock = (
+        "out of stock" not in text_lower
+        and "sold out" not in text_lower
+        and "currently unavailable" not in text_lower
+    )
+
+    return price, in_stock
+
+
+def scrape_amazon(url, retries=2):
+    """Scrape product price and stock from Amazon.
+    
+    Strategy order:
+    1. Try fast requests-based scrape first (works when not CAPTCHA'd)
+    2. Fall back to Playwright headless browser if requests fails
+    """
+    # ─── Phase 1: Try fast requests-based scrape ───
+    try:
+        log_activity(f"  → [Amazon] Trying fast requests-based scrape...")
+        session = create_scraper()
+        res = session.get(url, timeout=15)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            title_tag = soup.find("title")
+            title_text = (title_tag.get_text().lower() if title_tag else "").strip()
+
+            # Check if we're blocked (CAPTCHA/challenge page)
+            is_blocked = (
+                "sorry" in title_text
+                or "robot" in title_text
+                or "validatecaptcha" in res.text[:3000].lower()
+                or (title_text in ("amazon", "amazon.in", "amazon.com") and len(res.text) < 15000)
+            )
+
+            if not is_blocked:
+                # Try JSON-LD first
+                price, in_stock = _extract_json_ld_price(soup)
+                if price is not None:
+                    log_activity(f"  → [Amazon/requests JSON-LD] Price: ₹{price:,.2f}")
+                    return price, in_stock
+
+                # Try standard Amazon selectors
+                price = None
+                for selector_name, finder in [
+                    ("a-offscreen", lambda: soup.select_one(".a-price .a-offscreen")),
+                    ("priceblock_dealprice", lambda: soup.find("span", {"id": "priceblock_dealprice"})),
+                    ("priceblock_ourprice", lambda: soup.find("span", {"id": "priceblock_ourprice"})),
+                    ("corePrice", lambda: (soup.find("div", {"id": "corePrice_feature_div"}) or soup.new_tag("x")).find("span", {"class": "a-offscreen"})),
+                    ("a-price-whole", lambda: soup.find("span", {"class": "a-price-whole"})),
+                    ("price_inside_buybox", lambda: soup.find("span", {"id": "price_inside_buybox"})),
+                    ("newBuyBoxPrice", lambda: soup.find("span", {"id": "newBuyBoxPrice"})),
+                ]:
+                    tag = finder()
+                    if tag:
+                        candidate = clean_price(tag.get_text())
+                        if candidate:
+                            price = candidate
+                            log_activity(f"  → [Amazon/requests {selector_name}] Price: ₹{price:,.2f}")
+                            break
+
+                if price is not None:
+                    # Stock check
+                    in_stock = True
+                    avail_div = soup.find("div", {"id": "availability"})
+                    if avail_div:
+                        avail_text = avail_div.get_text().lower()
+                        if "unavailable" in avail_text or "out of stock" in avail_text:
+                            in_stock = False
+                    if in_stock:
+                        unavail_span = soup.find("span", string=re.compile(r"currently unavailable", re.I))
+                        if unavail_span:
+                            in_stock = False
+                    return price, in_stock
+
+                log_activity(f"  → [Amazon/requests] Page loaded but no price found, falling back to Playwright.", "WARN")
+            else:
+                log_activity(f"  → [Amazon/requests] Blocked by CAPTCHA, falling back to Playwright.")
+    except Exception as e:
+        log_activity(f"  → [Amazon/requests] Error: {str(e)[:100]}, falling back to Playwright.", "WARN")
+
+    # ─── Phase 2: Playwright headless browser ───
     last_error = None
 
     for attempt in range(retries + 1):
@@ -613,7 +776,7 @@ def scrape_amazon(url, retries=2):
             page.route("**/ads/**", lambda route: route.abort())
             page.route("**/analytics/**", lambda route: route.abort())
 
-            log_activity(f"  -> [Playwright] Loading page (attempt {attempt+1}/{retries+1})...")
+            log_activity(f"  → [Playwright] Loading page (attempt {attempt+1}/{retries+1})...")
 
             # Navigate and wait for the page to be fully loaded
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
@@ -622,43 +785,37 @@ def scrape_amazon(url, retries=2):
             page.wait_for_timeout(random.randint(2000, 4000))
 
             # ─── Handle Amazon challenge pages ───
-            # Amazon has two types of bot checks:
-            # 1. "Continue shopping" button (simple challenge, no image CAPTCHA)
-            # 2. Full CAPTCHA with image (harder block)
-
-            # Check for "Continue shopping" challenge (most common)
             continue_btn = page.query_selector('form[action="/errors/validateCaptcha"] button[type="submit"]')
             if continue_btn:
-                log_activity(f"  -> [Playwright] 'Continue shopping' challenge detected, clicking button...")
+                log_activity(f"  → [Playwright] 'Continue shopping' challenge detected, clicking...")
                 continue_btn.click()
-                # Wait for navigation to complete and real page to load
                 try:
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
                     page.wait_for_timeout(random.randint(3000, 5000))
-                    log_activity(f"  -> [Playwright] Challenge bypassed, page title: '{page.title()[:60]}'")
+                    log_activity(f"  → [Playwright] Challenge bypassed, title: '{page.title()[:60]}'")
                 except Exception as nav_err:
-                    log_activity(f"  -> [Playwright] Post-challenge navigation timeout: {nav_err}", "WARN")
+                    log_activity(f"  → [Playwright] Post-challenge timeout: {nav_err}", "WARN")
 
-            # Check if we're still on a CAPTCHA/challenge page after attempting bypass
+            # Check if still on CAPTCHA page
             current_title = page.title().lower()
             page_html_snippet = page.content()[:2000].lower()
             is_captcha = (
                 "sorry" in current_title
                 or "robot" in current_title
-                or ("amazon" == current_title.strip() or "amazon.in" == current_title.strip())
-                and len(page.content()) < 15000
-                and "validatecaptcha" in page_html_snippet
+                or (("amazon" == current_title.strip() or "amazon.in" == current_title.strip())
+                    and len(page.content()) < 15000
+                    and "validatecaptcha" in page_html_snippet)
             )
 
             if is_captcha:
-                log_activity(f"  -> [Playwright] Still on challenge page after bypass attempt (attempt {attempt+1})", "WARN")
+                log_activity(f"  → [Playwright] Still on challenge page (attempt {attempt+1})", "WARN")
                 if attempt < retries:
                     time.sleep(random.uniform(5, 10))
                     continue
                 log_activity("Amazon is blocking after all retries.", "ERROR")
                 return None, False
 
-            # Try to wait for a price element to appear
+            # Try to wait for a price element
             try:
                 page.wait_for_selector(
                     ".a-price-whole, #priceblock_ourprice, #priceblock_dealprice, "
@@ -666,118 +823,48 @@ def scrape_amazon(url, retries=2):
                     timeout=8000
                 )
             except Exception:
-                log_activity("  → [Playwright] No price selector found within timeout, continuing with page as-is...", "WARN")
+                log_activity("  → [Playwright] No price selector within timeout, continuing...", "WARN")
 
-            # Get the fully rendered HTML
+            # Get fully rendered HTML
             page_text = page.content()
             soup = BeautifulSoup(page_text, "html.parser")
 
             page_title = soup.find("title")
             page_title_text = page_title.get_text()[:60] if page_title else "unknown"
-            log_activity(f"  → [Playwright] Page loaded: '{page_title_text}' ({len(page_text)} bytes)")
+            log_activity(f"  → [Playwright] Page: '{page_title_text}' ({len(page_text)} bytes)")
 
             price = None
 
-            # ─── Strategy 0: JSON-LD structured data (MOST RELIABLE) ───
-            for script in soup.find_all("script", {"type": "application/ld+json"}):
-                try:
-                    ld_data = json.loads(script.string)
-                    items = ld_data if isinstance(ld_data, list) else [ld_data]
-                    for item in items:
-                        if item.get("@type") in ("Product", "IndividualProduct"):
-                            offers = item.get("offers", {})
-                            if isinstance(offers, list):
-                                offers = offers[0] if offers else {}
-                            p = offers.get("price") or offers.get("lowPrice")
-                            if p:
-                                price = float(p)
-                                log_activity(f"  → [JSON-LD] Extracted price: ₹{price:,.2f}")
-                                break
-                    if price:
-                        break
-                except (json.JSONDecodeError, ValueError, TypeError, KeyError):
-                    continue
+            # Strategy 0: JSON-LD
+            ld_price, ld_stock = _extract_json_ld_price(soup)
+            if ld_price is not None:
+                price = ld_price
+                log_activity(f"  → [JSON-LD] Price: ₹{price:,.2f}")
 
-            # ─── Strategy 1: Deal price ───
+            # Strategy 1-8: Amazon-specific selectors
             if price is None:
-                tag = soup.find("span", {"id": "priceblock_dealprice"})
-                if tag:
-                    price = clean_price(tag.get_text())
-                    if price:
-                        log_activity(f"  → [dealprice] Extracted price: ₹{price:,.2f}")
-
-            # ─── Strategy 2: Our price ───
-            if price is None:
-                tag = soup.find("span", {"id": "priceblock_ourprice"})
-                if tag:
-                    price = clean_price(tag.get_text())
-                    if price:
-                        log_activity(f"  → [ourprice] Extracted price: ₹{price:,.2f}")
-
-            # ─── Strategy 3: corePrice_feature_div .a-offscreen ───
-            if price is None:
-                price_div = soup.find("div", {"id": "corePrice_feature_div"})
-                if price_div:
-                    offscreen = price_div.find("span", {"class": "a-offscreen"})
-                    if offscreen:
-                        price = clean_price(offscreen.get_text())
-                        if price:
-                            log_activity(f"  → [corePrice offscreen] Extracted price: ₹{price:,.2f}")
-
-            # ─── Strategy 4: .a-price .a-offscreen (first non-struck-out) ───
-            if price is None:
-                for a_price in soup.find_all("span", {"class": "a-price"}):
-                    if a_price.find_parent(class_=re.compile(r"a-text-strike|priceBlockStrikePrice")):
-                        continue
-                    offscreen = a_price.find("span", {"class": "a-offscreen"})
-                    if offscreen:
-                        price = clean_price(offscreen.get_text())
-                        if price:
-                            log_activity(f"  → [a-price offscreen] Extracted price: ₹{price:,.2f}")
+                for selector_name, finder in [
+                    ("dealprice", lambda: soup.find("span", {"id": "priceblock_dealprice"})),
+                    ("ourprice", lambda: soup.find("span", {"id": "priceblock_ourprice"})),
+                    ("corePrice", lambda: (soup.find("div", {"id": "corePrice_feature_div"}) or soup.new_tag("x")).find("span", {"class": "a-offscreen"})),
+                    ("a-price", lambda: next((a.find("span", {"class": "a-offscreen"}) for a in soup.find_all("span", {"class": "a-price"}) if not a.find_parent(class_=re.compile(r"a-text-strike|priceBlockStrikePrice")) and a.find("span", {"class": "a-offscreen"})), None)),
+                    ("a-price-whole", lambda: soup.find("span", {"class": "a-price-whole"})),
+                    ("apex", lambda: soup.select_one("#apex_offerDisplay_desktop .a-offscreen")),
+                    ("buybox", lambda: soup.find("span", {"id": "price_inside_buybox"})),
+                    ("newBuyBox", lambda: soup.find("span", {"id": "newBuyBoxPrice"})),
+                ]:
+                    tag = finder()
+                    if tag:
+                        candidate = clean_price(tag.get_text())
+                        if candidate:
+                            price = candidate
+                            log_activity(f"  → [{selector_name}] Price: ₹{price:,.2f}")
                             break
 
-            # ─── Strategy 5: .a-price-whole + .a-price-fraction ───
-            if price is None:
-                tag = soup.find("span", {"class": "a-price-whole"})
-                if tag:
-                    whole = tag.get_text().replace(".", "").replace(",", "")
-                    fraction_tag = tag.find_next_sibling("span", {"class": "a-price-fraction"})
-                    fraction = fraction_tag.get_text() if fraction_tag else "00"
-                    try:
-                        price = float(f"{whole.strip()}.{fraction.strip()}")
-                        log_activity(f"  → [a-price-whole] Extracted price: ₹{price:,.2f}")
-                    except ValueError:
-                        pass
-
-            # ─── Strategy 6: apex_offerDisplay_desktop ───
-            if price is None:
-                tag = soup.select_one("#apex_offerDisplay_desktop .a-offscreen")
-                if tag:
-                    price = clean_price(tag.get_text())
-                    if price:
-                        log_activity(f"  → [apex_offerDisplay] Extracted price: ₹{price:,.2f}")
-
-            # ─── Strategy 7: price_inside_buybox ───
-            if price is None:
-                tag = soup.find("span", {"id": "price_inside_buybox"})
-                if tag:
-                    price = clean_price(tag.get_text())
-                    if price:
-                        log_activity(f"  → [buybox] Extracted price: ₹{price:,.2f}")
-
-            # ─── Strategy 8: newBuyBoxPrice ───
-            if price is None:
-                tag = soup.find("span", {"id": "newBuyBoxPrice"})
-                if tag:
-                    price = clean_price(tag.get_text())
-                    if price:
-                        log_activity(f"  → [newBuyBox] Extracted price: ₹{price:,.2f}")
-
-            # ─── Strategy 9: Playwright direct JS evaluation ───
+            # Strategy 9: JS evaluation
             if price is None:
                 try:
                     js_price = page.evaluate("""() => {
-                        // Try multiple selectors via JS
                         const selectors = [
                             '.a-price .a-offscreen',
                             '#priceblock_ourprice',
@@ -797,11 +884,11 @@ def scrape_amazon(url, retries=2):
                     if js_price:
                         price = clean_price(js_price)
                         if price:
-                            log_activity(f"  → [JS eval] Extracted price: ₹{price:,.2f}")
+                            log_activity(f"  → [JS eval] Price: ₹{price:,.2f}")
                 except Exception:
                     pass
 
-            # ─── Strategy 10: Regex scan for ₹ price in HTML ───
+            # Strategy 10: Regex fallback
             if price is None:
                 price_pattern = re.findall(r'[₹₨]\s*([\d,]+(?:\.\d{1,2})?)', page_text)
                 if price_pattern:
@@ -810,22 +897,23 @@ def scrape_amazon(url, retries=2):
                     most_common = price_counts.most_common(1)[0][0]
                     price = clean_price(most_common)
                     if price:
-                        log_activity(f"  → [regex fallback] Extracted price: ₹{price:,.2f}")
+                        log_activity(f"  → [regex fallback] Price: ₹{price:,.2f}")
 
-            # ─── Stock detection ───
+            # Stock detection
             in_stock = True
-            availability = soup.find("div", {"id": "availability"})
-            if availability:
-                avail_text = availability.get_text().lower()
-                if "unavailable" in avail_text or "out of stock" in avail_text:
-                    in_stock = False
+            if ld_price is not None and ld_stock is not None:
+                in_stock = ld_stock
+            else:
+                availability = soup.find("div", {"id": "availability"})
+                if availability:
+                    avail_text = availability.get_text().lower()
+                    if "unavailable" in avail_text or "out of stock" in avail_text:
+                        in_stock = False
+                if in_stock:
+                    unavail_span = soup.find("span", string=re.compile(r"currently unavailable", re.I))
+                    if unavail_span:
+                        in_stock = False
 
-            if in_stock:
-                unavail_span = soup.find("span", string=re.compile(r"currently unavailable", re.I))
-                if unavail_span:
-                    in_stock = False
-
-            # ─── Diagnostics if price still None ───
             if price is None:
                 log_activity(f"  → All strategies failed. Title: '{page_title_text}'", "WARN")
                 log_activity(f"  → Page size: {len(page_text)} bytes. Has 'a-price': {'a-price' in page_text}", "WARN")
@@ -852,67 +940,188 @@ def scrape_amazon(url, retries=2):
 
 
 def scrape_flipkart(url):
-    """Scrape product price and stock status from Flipkart."""
+    """Scrape product price and stock status from Flipkart.
+    
+    Strategy order:
+    1. JSON-LD structured data (most reliable, Flipkart always serves this)
+    2. Rupee symbol regex from HTML (class names change frequently)
+    3. Playwright fallback for JS-rendered content
+    """
+    # ─── Phase 1: requests-based scrape ───
     try:
-        res = requests.get(url, headers=get_headers(), timeout=15)
-        soup = BeautifulSoup(res.text, "html.parser")
+        log_activity(f"  → [Flipkart] Trying requests-based scrape...")
+        session = create_scraper()
+        res = session.get(url, timeout=15)
 
-        price = None
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            title_tag = soup.find("title")
+            title_text = title_tag.get_text()[:60] if title_tag else "unknown"
+            log_activity(f"  → [Flipkart] Page: '{title_text}' ({len(res.text)} bytes)")
 
-        # Strategy 1: div._30jeq3 (primary price class)
-        tag = soup.find("div", {"class": "_30jeq3"})
-        if tag:
-            price = clean_price(tag.get_text())
+            # Check if blocked (Flipkart may serve challenge pages)
+            if res.status_code == 429 or "access denied" in res.text[:2000].lower():
+                log_activity(f"  → [Flipkart] Rate limited or blocked, trying Playwright.", "WARN")
+            else:
+                # Strategy 1: JSON-LD (MOST RELIABLE)
+                price, in_stock = _extract_json_ld_price(soup)
+                if price is not None:
+                    log_activity(f"  → [Flipkart/JSON-LD] Price: ₹{price:,.2f}")
+                    return price, in_stock
 
-        # Strategy 2: div._16Jk6d (discounted price)
+                # Strategy 2: First ₹ price on the page (typically the product price)
+                rupee_tags = soup.find_all(string=re.compile(r'₹'))
+                for tag_text in rupee_tags:
+                    text = tag_text.strip()
+                    # Look for clean price patterns like "₹56,900" — skip long texts
+                    if len(text) < 20 and re.match(r'^₹[\d,]+(?:\.\d{1,2})?$', text.replace(' ', '')):
+                        candidate = clean_price(text)
+                        if candidate and candidate > 0:
+                            price = candidate
+                            log_activity(f"  → [Flipkart/rupee-tag] Price: ₹{price:,.2f}")
+                            break
+
+                if price is not None:
+                    page_text = soup.get_text().lower()
+                    in_stock = "sold out" not in page_text and "currently unavailable" not in page_text
+                    return price, in_stock
+
+                # Strategy 3: Regex scan for ₹ patterns in raw HTML
+                price_pattern = re.findall(r'₹\s*([\d,]+(?:\.\d{1,2})?)', res.text)
+                if price_pattern:
+                    # Take the first reasonable price (product prices are typically shown first)
+                    for p_str in price_pattern:
+                        candidate = clean_price(p_str)
+                        if candidate and candidate > 10:  # Filter out tiny noise values
+                            price = candidate
+                            log_activity(f"  → [Flipkart/regex] Price: ₹{price:,.2f}")
+                            break
+
+                if price is not None:
+                    page_text = soup.get_text().lower()
+                    in_stock = "sold out" not in page_text and "currently unavailable" not in page_text
+                    return price, in_stock
+
+                log_activity(f"  → [Flipkart/requests] No price found, trying Playwright fallback.", "WARN")
+
+    except Exception as e:
+        log_activity(f"  → [Flipkart/requests] Error: {str(e)[:100]}", "WARN")
+
+    # ─── Phase 2: Playwright fallback ───
+    context = None
+    page = None
+    try:
+        log_activity(f"  → [Flipkart/Playwright] Launching browser scrape...")
+        browser = _get_browser()
+        context = _create_stealth_context(browser)
+        page = context.new_page()
+
+        # Block heavy resources
+        page.route("**/*.{png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf}", lambda route: route.abort())
+        page.route("**/ads/**", lambda route: route.abort())
+
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(random.randint(2000, 4000))
+
+        page_text = page.content()
+        soup = BeautifulSoup(page_text, "html.parser")
+
+        # Try JSON-LD first
+        price, in_stock = _extract_json_ld_price(soup)
+        if price is not None:
+            log_activity(f"  → [Flipkart/Playwright JSON-LD] Price: ₹{price:,.2f}")
+            return price, in_stock
+
+        # Try JS evaluation for price
+        try:
+            js_price = page.evaluate("""() => {
+                // Look for price elements containing ₹
+                const all = document.querySelectorAll('div, span');
+                for (const el of all) {
+                    const text = el.textContent.trim();
+                    if (/^₹[\\d,]+(\\.\\d{1,2})?$/.test(text) && text.length < 20) {
+                        return text;
+                    }
+                }
+                return null;
+            }""")
+            if js_price:
+                price = clean_price(js_price)
+                if price:
+                    log_activity(f"  → [Flipkart/JS eval] Price: ₹{price:,.2f}")
+        except Exception:
+            pass
+
+        # Regex fallback on rendered HTML
         if price is None:
-            tag = soup.find("div", {"class": "_16Jk6d"})
-            if tag:
-                price = clean_price(tag.get_text())
-
-        # Strategy 3: CSS selector for newer Flipkart layout
-        if price is None:
-            tag = soup.select_one("div.Nx9bqj.CxhGGd")
-            if tag:
-                price = clean_price(tag.get_text())
-
-        # Strategy 4: Generic price pattern search
-        if price is None:
-            tag = soup.select_one("div.Nx9bqj")
-            if tag:
-                price = clean_price(tag.get_text())
+            price, in_stock_html = _extract_price_from_html(soup, page_text)
+            if price:
+                log_activity(f"  → [Flipkart/Playwright HTML] Price: ₹{price:,.2f}")
+                return price, in_stock_html
 
         # Stock detection
-        in_stock = True
-        page_text = soup.get_text().lower()
-        if "sold out" in page_text or "currently unavailable" in page_text:
-            in_stock = False
+        text_lower = soup.get_text().lower()
+        in_stock = "sold out" not in text_lower and "currently unavailable" not in text_lower
+
+        if price is None:
+            log_activity(f"  → [Flipkart] All strategies failed.", "WARN")
 
         return price, in_stock
 
     except Exception as e:
-        log_activity(f"Flipkart scrape error: {str(e)}", "ERROR")
+        log_activity(f"Flipkart Playwright error: {str(e)}", "ERROR")
         return None, False
+    finally:
+        try:
+            if page:
+                page.close()
+            if context:
+                context.close()
+        except Exception:
+            pass
 
 
 def scrape_snapdeal(url):
-    """Scrape product price and stock status from Snapdeal."""
+    """Scrape product price and stock status from Snapdeal.
+    
+    Strategy order:
+    1. JSON-LD structured data
+    2. Known CSS selectors (payBlkBig, pdp-final-price, etc.)
+    3. Rupee regex fallback
+    """
     try:
-        res = requests.get(url, headers=get_headers(), timeout=15)
+        session = create_scraper()
+        res = session.get(url, timeout=15)
         soup = BeautifulSoup(res.text, "html.parser")
+
+        # Strategy 1: JSON-LD
+        price, in_stock = _extract_json_ld_price(soup)
+        if price is not None:
+            log_activity(f"  → [Snapdeal/JSON-LD] Price: ₹{price:,.2f}")
+            return price, in_stock
 
         price = None
 
-        # Strategy 1: span.payBlkBig (original selector)
-        tag = soup.find("span", {"class": "payBlkBig"})
-        if tag:
-            price = clean_price(tag.get_text())
-
-        # Strategy 2: span.pdp-final-price
-        if price is None:
-            tag = soup.find("span", {"class": "pdp-final-price"})
+        # Strategy 2: Known Snapdeal selectors
+        for selector_name, finder in [
+            ("payBlkBig", lambda: soup.find("span", {"class": "payBlkBig"})),
+            ("pdp-final-price", lambda: soup.find("span", {"class": "pdp-final-price"})),
+            ("pdp-e-i-P-r", lambda: soup.find("span", {"class": "pdp-e-i-P-r"})),
+            ("price-payable", lambda: soup.select_one(".pdp-e-i-PAY-r span")),
+        ]:
+            tag = finder()
             if tag:
-                price = clean_price(tag.get_text())
+                candidate = clean_price(tag.get_text())
+                if candidate:
+                    price = candidate
+                    log_activity(f"  → [Snapdeal/{selector_name}] Price: ₹{price:,.2f}")
+                    break
+
+        # Strategy 3: Regex fallback
+        if price is None:
+            price, _ = _extract_price_from_html(soup, res.text)
+            if price:
+                log_activity(f"  → [Snapdeal/regex] Price: ₹{price:,.2f}")
 
         # Stock detection
         in_stock = "sold out" not in soup.get_text().lower()
@@ -925,26 +1134,98 @@ def scrape_snapdeal(url):
 
 
 def scrape_generic(url):
-    """Generic fallback scraper — best-effort price extraction."""
+    """Generic fallback scraper — works for any e-commerce site.
+    
+    Strategy order:
+    1. JSON-LD structured data (most sites serve this for SEO)
+    2. Open Graph / meta tag prices
+    3. Price-class CSS selectors
+    4. Rupee regex scan
+    5. Playwright fallback for JS-rendered sites
+    """
+    # ─── Phase 1: requests-based scrape ───
     try:
-        res = requests.get(url, headers=get_headers(), timeout=15)
+        log_activity(f"  → [Generic] Trying requests-based scrape...")
+        session = create_scraper()
+        res = session.get(url, timeout=15)
         soup = BeautifulSoup(res.text, "html.parser")
 
+        # Strategy 1: JSON-LD
+        price, in_stock = _extract_json_ld_price(soup)
+        if price is not None:
+            log_activity(f"  → [Generic/JSON-LD] Price: ₹{price:,.2f}")
+            return price, in_stock
+
+        # Strategy 2: Meta tags (og:price, product:price:amount, etc.)
         price = None
+        for meta in soup.find_all("meta"):
+            prop = (meta.get("property", "") + meta.get("name", "")).lower()
+            content = meta.get("content", "")
+            if any(kw in prop for kw in ["price:amount", "price", "amount"]):
+                candidate = clean_price(content)
+                if candidate:
+                    price = candidate
+                    log_activity(f"  → [Generic/meta] Price: ₹{price:,.2f}")
+                    break
 
-        # Look for common price patterns in the page
-        for tag in soup.find_all(["span", "div", "p"], class_=re.compile(r"price", re.I)):
-            candidate = clean_price(tag.get_text())
-            if candidate and candidate > 0:
-                price = candidate
-                break
+        if price is not None:
+            text_lower = soup.get_text().lower()
+            in_stock = "out of stock" not in text_lower and "sold out" not in text_lower
+            return price, in_stock
 
-        in_stock = "out of stock" not in soup.get_text().lower()
-        return price, in_stock
+        # Strategy 3: Price-class CSS selectors
+        price, in_stock = _extract_price_from_html(soup, res.text)
+        if price is not None:
+            log_activity(f"  → [Generic/HTML] Price: ₹{price:,.2f}")
+            return price, in_stock
+
+        log_activity(f"  → [Generic/requests] No price found, trying Playwright.", "WARN")
 
     except Exception as e:
-        log_activity(f"Generic scrape error: {str(e)}", "ERROR")
+        log_activity(f"  → [Generic/requests] Error: {str(e)[:100]}", "WARN")
+
+    # ─── Phase 2: Playwright fallback for JS-heavy sites ───
+    context = None
+    page = None
+    try:
+        log_activity(f"  → [Generic/Playwright] Launching browser scrape...")
+        browser = _get_browser()
+        context = _create_stealth_context(browser)
+        page = context.new_page()
+
+        page.route("**/*.{png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf}", lambda route: route.abort())
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(random.randint(2000, 4000))
+
+        page_text = page.content()
+        soup = BeautifulSoup(page_text, "html.parser")
+
+        # Try JSON-LD from rendered page
+        price, in_stock = _extract_json_ld_price(soup)
+        if price is not None:
+            log_activity(f"  → [Generic/Playwright JSON-LD] Price: ₹{price:,.2f}")
+            return price, in_stock
+
+        # Try HTML extraction from rendered page
+        price, in_stock = _extract_price_from_html(soup, page_text)
+        if price is not None:
+            log_activity(f"  → [Generic/Playwright HTML] Price: ₹{price:,.2f}")
+            return price, in_stock
+
+        log_activity(f"  → [Generic] All strategies failed.", "WARN")
+        return None, True
+
+    except Exception as e:
+        log_activity(f"Generic Playwright error: {str(e)}", "ERROR")
         return None, False
+    finally:
+        try:
+            if page:
+                page.close()
+            if context:
+                context.close()
+        except Exception:
+            pass
 
 
 def get_product_data(url, platform="auto"):
@@ -977,7 +1258,7 @@ def monitor_loop():
         cursor = conn.cursor()
 
         try:
-            cursor.execute("SELECT id, name, url, target_price, platform, user_id FROM products")
+            cursor.execute("SELECT id, name, url, target_price, platform, user_id FROM products WHERE is_active = 1")
             products = cursor.fetchall()
 
             if not products:
@@ -995,6 +1276,23 @@ def monitor_loop():
                 target = product["target_price"]
                 platform = product["platform"] or "auto"
                 uid = product["user_id"]
+
+                # Check when it was last successfully scraped (history entries only exist for non-null/successful scrapes)
+                cursor.execute(
+                    "SELECT timestamp FROM history WHERE product_id=? ORDER BY rowid DESC LIMIT 1",
+                    (pid,)
+                )
+                last_scrape = cursor.fetchone()
+                if last_scrape:
+                    try:
+                        last_time = datetime.strptime(last_scrape["timestamp"], "%Y-%m-%d %H:%M:%S")
+                        elapsed = (datetime.now() - last_time).total_seconds()
+                        if elapsed < 3600:
+                            # Skip scraping this product in this cycle
+                            print(f"[Monitor] Skipping {name} (last successful scrape was {int(elapsed // 60)} minutes ago)")
+                            continue
+                    except Exception as parse_err:
+                        print(f"[Monitor] Error parsing timestamp: {parse_err}")
 
                 detected = detect_platform(url) if platform == "auto" else platform
                 log_user_activity(uid, f"Scraping [{detected.upper()}] {name}...")
@@ -1015,8 +1313,8 @@ def monitor_loop():
                     )
                     conn.commit()
 
-                    # Price drop alert
-                    if price <= target:
+                    # Price drop alert (only alert and stop tracking if product is in stock)
+                    if price <= target and in_stock:
                         alert_msg = f"🔥 {name} dropped to ₹{price:,.2f} (target: ₹{target:,.2f})!"
                         log_user_activity(uid, f"ALERT: {alert_msg}", "ALERT")
                         # Send notifications
@@ -1026,6 +1324,9 @@ def monitor_loop():
                             f"{alert_msg}\n\nProduct: {name}\nLink: {url}",
                             uid
                         )
+                        # Deactivate product since alert is sent
+                        cursor.execute("UPDATE products SET is_active = 0 WHERE id = ?", (pid,))
+                        conn.commit()
                 else:
                     log_user_activity(uid, f"  → Could not extract price (site may be blocking)", "WARN")
 
@@ -1217,7 +1518,7 @@ def api_get_products():
     conn = get_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, name, url, target_price, platform FROM products WHERE user_id=? ORDER BY id DESC", (uid,))
+    cursor.execute("SELECT id, name, url, target_price, platform, is_active FROM products WHERE user_id=? ORDER BY id DESC", (uid,))
     products = cursor.fetchall()
 
     result = []
@@ -1237,6 +1538,7 @@ def api_get_products():
             "url": p["url"],
             "target_price": p["target_price"],
             "platform": p["platform"] or "auto",
+            "is_active": bool(p["is_active"]),
             "price": latest["price"] if latest else None,
             "stock": bool(latest["stock"]) if latest else True,
             "last_updated": latest["timestamp"] if latest else None,
@@ -1244,6 +1546,59 @@ def api_get_products():
 
     conn.close()
     return jsonify(result)
+
+
+def scrape_single_product_background(product_id, user_id, name, url, target_price, platform):
+    """Scrape a newly added product immediately in the background."""
+    try:
+        log_activity(f"Background scrape triggered for new product: {name}")
+        price, in_stock = get_product_data(url, platform)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        if price is not None:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute(
+                "INSERT INTO history (product_id, price, stock, timestamp) VALUES (?, ?, ?, ?)",
+                (product_id, price, 1 if in_stock else 0, timestamp)
+            )
+            conn.commit()
+            
+            # Check price drop (only alert and stop tracking if product is in stock)
+            if price <= target_price and in_stock:
+                alert_msg = f"🔥 {name} dropped to ₹{price:,.2f} (target: ₹{target_price:,.2f})!"
+                log_user_activity(user_id, f"ALERT: {alert_msg}", "ALERT")
+                send_whatsapp(f"💰 PricePulse Alert!\n\n{alert_msg}\n\n🔗 {url}", user_id)
+                send_email(
+                    f"Price Drop: {name}",
+                    f"{alert_msg}\n\nProduct: {name}\nLink: {url}",
+                    user_id
+                )
+                # Deactivate product since alert is sent
+                cursor.execute("UPDATE products SET is_active = 0 WHERE id = ?", (product_id,))
+            else:
+                # Scrape succeeded, but price did not drop or it's out of stock: activate product for periodic checking
+                cursor.execute("UPDATE products SET is_active = 1 WHERE id = ?", (product_id,))
+            conn.commit()
+            log_user_activity(user_id, f"Initial scrape completed for {name}: ₹{price:,.2f}")
+        else:
+            # Scrape failed (blocked/etc.): set to active so it retries in the main loop
+            cursor.execute("UPDATE products SET is_active = 1 WHERE id = ?", (product_id,))
+            conn.commit()
+            log_user_activity(user_id, f"Initial scrape: could not extract price for {name} (site may be blocking)", "WARN")
+            
+        conn.close()
+    except Exception as e:
+        log_activity(f"Error in background scrape for product {product_id}: {str(e)}", "ERROR")
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE products SET is_active = 1 WHERE id = ?", (product_id,))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
 
 
 @app.route("/api/products", methods=["POST"])
@@ -1272,8 +1627,9 @@ def api_add_product():
     uid = session["user_id"]
     conn = get_db()
     cursor = conn.cursor()
+    # Insert with is_active = 2 (initial scraping in progress) to avoid loop race conditions
     cursor.execute(
-        "INSERT INTO products (user_id, name, url, target_price, platform) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO products (user_id, name, url, target_price, platform, is_active) VALUES (?, ?, ?, ?, ?, 2)",
         (uid, name, url, target_price, platform)
     )
     conn.commit()
@@ -1281,6 +1637,13 @@ def api_add_product():
     conn.close()
 
     log_user_activity(uid, f"Added product: {name} [{platform.upper()}] (target: ₹{target_price:,.2f})", "ALERT")
+
+    # Start immediate scrape in background thread
+    threading.Thread(
+        target=scrape_single_product_background,
+        args=(new_id, uid, name, url, target_price, platform),
+        daemon=True
+    ).start()
 
     return jsonify({"success": True, "id": new_id, "platform": platform})
 
@@ -1497,43 +1860,37 @@ def api_test_whatsapp():
 
 
 # ═══════════════════════════════════════════════════════════════
-# Flask Routes — Email Settings API
+# Flask Routes — Email Settings API (Simplified)
 # ═══════════════════════════════════════════════════════════════
 @app.route("/api/email/config", methods=["GET"])
 @login_required
 def api_get_email_config():
-    """Get current email notification settings for the logged-in user (password masked)."""
+    """Get user's notification email and whether SMTP is configured."""
     uid = session["user_id"]
     config = load_email_config(uid)
-    safe_config = {
+    return jsonify({
         "enabled": config.get("enabled", False),
-        "smtp_server": config.get("smtp_server", ""),
-        "smtp_port": config.get("smtp_port", 587),
-        "sender_email": config.get("sender_email", ""),
-        "password_set": bool(config.get("sender_password", "")),
         "recipient_email": config.get("recipient_email", ""),
-    }
-    return jsonify(safe_config)
+        "smtp_configured": is_smtp_configured(),
+    })
 
 
 @app.route("/api/email/config", methods=["POST"])
 @login_required
 def api_save_email_config():
-    """Save email notification settings for the logged-in user."""
+    """Save user's notification email. Just email + toggle — that's it."""
     data = request.get_json()
     uid = session["user_id"]
 
-    config = load_email_config(uid)
-    config["enabled"] = data.get("enabled", config["enabled"])
-    config["smtp_server"] = data.get("smtp_server", config["smtp_server"])
-    config["smtp_port"] = int(data.get("smtp_port", config["smtp_port"]))
-    config["sender_email"] = data.get("sender_email", config["sender_email"])
-    if data.get("sender_password"):  # Only update if provided
-        config["sender_password"] = data["sender_password"]
-    config["recipient_email"] = data.get("recipient_email", config["recipient_email"])
+    recipient = data.get("recipient_email", "").strip()
+    enabled = data.get("enabled", False)
 
-    save_email_config(config, uid)
-    log_user_activity(uid, f"Email settings updated. Notifications {'enabled' if config['enabled'] else 'disabled'}.", "ALERT")
+    # Basic email validation
+    if enabled and (not recipient or "@" not in recipient):
+        return jsonify({"success": False, "error": "Please enter a valid email address."}), 400
+
+    save_email_config({"enabled": enabled, "recipient_email": recipient}, uid)
+    log_user_activity(uid, f"Email alerts {'enabled' if enabled else 'disabled'} for {recipient}.", "ALERT")
 
     return jsonify({"success": True})
 
@@ -1541,11 +1898,14 @@ def api_save_email_config():
 @app.route("/api/email/test", methods=["POST"])
 @login_required
 def api_test_email():
-    """Send a test email for the logged-in user."""
+    """Send a test email to the logged-in user."""
     uid = session["user_id"]
     config = load_email_config(uid)
     if not config.get("enabled"):
-        return jsonify({"success": False, "error": "Email notifications are disabled. Enable them first."})
+        return jsonify({"success": False, "error": "Turn on email alerts first."})
+
+    if not is_smtp_configured():
+        return jsonify({"success": False, "error": "Email service not configured. Set SMTP_EMAIL and SMTP_PASSWORD in .env file."})
 
     success, message = send_email(
         "PricePulse Test Email",
@@ -1561,6 +1921,15 @@ def api_test_email():
 # ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     init_db()
+    
+    # Configure debug mode (defaults to True, but checks environment variables)
+    debug_mode = os.environ.get("FLASK_DEBUG", "true").lower() in ("true", "1")
+    app.debug = debug_mode
+    
+    # If Flask reloader is enabled, only start the monitor in the active child process
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        start_monitor()
+        
     log_activity("PricePulse server initialized. Ready to track prices.", "ALERT")
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(debug=debug_mode, host="0.0.0.0", port=port)

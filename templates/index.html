@@ -1748,10 +1748,10 @@
                             </div>
                         </div>
 
-                        <!-- Email Alerts Card -->
+                        <!-- Email Alerts Card (Simplified) -->
                         <div class="glass-card email-settings-card">
                             <div class="settings-card-header">
-                                <h3><i class="fa-solid fa-envelope"></i> SMTP Email Notifications</h3>
+                                <h3><i class="fa-solid fa-envelope"></i> Email Notifications</h3>
                                 <span id="email-status-badge" class="settings-status-badge disconnected">
                                     <i class="fa-solid fa-circle" style="font-size: 0.35rem;"></i> Off
                                 </span>
@@ -1761,7 +1761,7 @@
                             <div class="toggle-row">
                                 <div class="toggle-label">
                                     <span id="email-enabled-dot" style="width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-red); margin-right: 0.25rem; display: inline-block;"></span>
-                                    Enable Email Notifications
+                                    Enable Email Alerts
                                 </div>
                                 <label class="toggle-switch">
                                     <input type="checkbox" id="email-enabled">
@@ -1769,45 +1769,28 @@
                                 </label>
                             </div>
 
-                            <!-- Instructions -->
+                            <!-- Simple instruction -->
                             <div class="setup-hint-box">
-                                <strong><i class="fa-solid fa-circle-info"></i> Gmail Setup Instruction:</strong>
-                                <ol>
-                                    <li>Navigate to <code>myaccount.google.com</code> &rarr; Security page.</li>
-                                    <li>Turn on <strong>2-Step Verification</strong>.</li>
-                                    <li>Search for <strong>App Passwords</strong> and create one for Mail.</li>
-                                    <li>Use this generated 16-character password below.</li>
-                                </ol>
+                                <strong><i class="fa-solid fa-circle-info"></i> How it works:</strong>
+                                Enter your email below. When a tracked product's price drops below your target, you'll receive an instant email alert. That's it!
                             </div>
 
-                            <!-- SMTP inputs -->
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="email-smtp-server">SMTP Server</label>
-                                    <input type="text" id="email-smtp-server" class="form-control" placeholder="smtp.gmail.com" autocomplete="off">
-                                </div>
-                                <div class="form-group">
-                                    <label for="email-smtp-port">SMTP Port</label>
-                                    <input type="number" id="email-smtp-port" class="form-control" placeholder="587" autocomplete="off">
-                                </div>
-                            </div>
+                            <!-- Single email input -->
                             <div class="form-group">
-                                <label for="email-sender">Sender Email</label>
-                                <input type="email" id="email-sender" class="form-control" placeholder="yourname@gmail.com" autocomplete="off">
+                                <label for="email-recipient">Your Email Address</label>
+                                <input type="email" id="email-recipient" class="form-control" placeholder="you@example.com" autocomplete="email">
                             </div>
-                            <div class="form-group">
-                                <label for="email-password">App Password</label>
-                                <input type="password" id="email-password" class="form-control" placeholder="Enter app password (hidden for security)" autocomplete="off">
-                            </div>
-                            <div class="form-group">
-                                <label for="email-recipient">Recipient Email</label>
-                                <input type="email" id="email-recipient" class="form-control" placeholder="alerts@example.com" autocomplete="off">
+
+                            <!-- SMTP status indicator (only shown if not configured) -->
+                            <div id="smtp-status-box" class="setup-hint-box" style="display: none; border-left-color: var(--accent-amber);">
+                                <strong><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-amber);"></i> Email service not configured</strong>
+                                Admin needs to set <code>SMTP_EMAIL</code> and <code>SMTP_PASSWORD</code> in the <code>.env</code> file.
                             </div>
 
                             <!-- Actions -->
                             <div class="settings-actions">
                                 <button id="btn-email-save" class="btn btn-primary" onclick="saveEmailConfig()">
-                                    <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                                    <i class="fa-solid fa-floppy-disk"></i> Save
                                 </button>
                                 <button id="btn-email-test" class="btn btn-secondary" onclick="testEmail()">
                                     <i class="fa-solid fa-paper-plane"></i> Send Test Email
@@ -1841,6 +1824,7 @@
         let activeProductName = "";
         let allProducts = [];
         let previousAlerts = new Set();
+        let isFirstPoll = true;
 
         // ═══════════════════════════════════════
         // UI Selectors
@@ -2026,12 +2010,14 @@
                 const stockClass = p.stock ? 'in-stock' : 'out-of-stock';
                 const stockIcon = p.stock ? 'fa-circle-check' : 'fa-circle-exclamation';
                 const escapedName = p.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const statusBadge = p.is_active ? '' : ' <span class="product-badge" style="background-color: var(--accent-red-light); color: var(--accent-red); margin-left: 0.5rem;"><i class="fa-solid fa-bell-slash"></i> Stopped</span>';
                 
                 return `
                     <tr id="prod-row-${p.id}">
                         <td>
                             <div class="product-info-cell">
                                 <span class="product-name" title="${p.name}">${p.name}</span>
+                                ${statusBadge}
                                 <a href="${p.url}" target="_blank" class="product-link-btn" title="Open product URL">
                                     Visit Site <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                 </a>
@@ -2377,10 +2363,13 @@
                             
                             if (!previousAlerts.has(logLine)) {
                                 previousAlerts.add(logLine);
-                                if (logLine.includes("dropped to")) {
-                                    showToast('🔥 Price Drop!', logLine.replace(/^\[.*?\]\s*ALERT:\s*/, ''), 'alert', 8000);
-                                } else if (logLine.includes("back in stock")) {
-                                    showToast('✅ Back In Stock!', logLine.replace(/^\[.*?\]\s*ALERT:\s*/, ''), 'success', 8000);
+                                // Only trigger screen notification toasts if this is not the first status load (historical)
+                                if (!isFirstPoll) {
+                                    if (logLine.includes("dropped to")) {
+                                        showToast('🔥 Price Drop!', logLine.replace(/^\[.*?\]\s*ALERT:\s*/, ''), 'alert', 8000);
+                                    } else if (logLine.includes("back in stock")) {
+                                        showToast('✅ Back In Stock!', logLine.replace(/^\[.*?\]\s*ALERT:\s*/, ''), 'success', 8000);
+                                    }
                                 }
                             }
                         } else if (logLine.includes("Error:") || logLine.includes("Warning:")) {
@@ -2393,6 +2382,9 @@
                     
                     if (shouldScroll) terminalBox.scrollTop = terminalBox.scrollHeight;
                 }
+                
+                // Mark that the initial log history load has completed
+                isFirstPoll = false;
             } catch (err) {
                 console.error("Error polling status:", err);
             }
@@ -2516,16 +2508,13 @@
         });
 
         // ═══════════════════════════════════════
-        // Email Settings
+        // Email Settings (Simplified)
         // ═══════════════════════════════════════
         const emailEnabled = document.getElementById('email-enabled');
         const emailEnabledDot = document.getElementById('email-enabled-dot');
         const emailStatusBadge = document.getElementById('email-status-badge');
-        const emailSmtpServer = document.getElementById('email-smtp-server');
-        const emailSmtpPort = document.getElementById('email-smtp-port');
-        const emailSender = document.getElementById('email-sender');
-        const emailPassword = document.getElementById('email-password');
         const emailRecipient = document.getElementById('email-recipient');
+        const smtpStatusBox = document.getElementById('smtp-status-box');
 
         function updateEmailStatusUI(enabled) {
             if (enabled) {
@@ -2544,12 +2533,12 @@
                 const res = await fetch('/api/email/config');
                 const config = await res.json();
                 emailEnabled.checked = config.enabled;
-                emailSmtpServer.value = config.smtp_server || '';
-                emailSmtpPort.value = config.smtp_port || 587;
-                emailSender.value = config.sender_email || '';
                 emailRecipient.value = config.recipient_email || '';
-                emailPassword.placeholder = config.password_set ? '•••••••• (saved, enter new to change)' : 'Enter your App Password';
                 updateEmailStatusUI(config.enabled);
+                // Show SMTP warning if not configured
+                if (smtpStatusBox) {
+                    smtpStatusBox.style.display = config.smtp_configured ? 'none' : 'block';
+                }
             } catch (err) {
                 console.error('Error loading email config:', err);
             }
@@ -2558,14 +2547,8 @@
         async function saveEmailConfig() {
             const config = {
                 enabled: emailEnabled.checked,
-                smtp_server: emailSmtpServer.value.trim(),
-                smtp_port: parseInt(emailSmtpPort.value) || 587,
-                sender_email: emailSender.value.trim(),
                 recipient_email: emailRecipient.value.trim(),
             };
-            if (emailPassword.value.trim()) {
-                config.sender_password = emailPassword.value.trim();
-            }
 
             try {
                 const res = await fetch('/api/email/config', {
@@ -2575,12 +2558,10 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast('Email Settings Saved', config.enabled ? 'Email notifications are now active.' : 'Email notifications are disabled.', config.enabled ? 'success' : 'info');
+                    showToast('Saved!', config.enabled ? 'Email alerts are now active.' : 'Email alerts disabled.', config.enabled ? 'success' : 'info');
                     updateEmailStatusUI(config.enabled);
-                    emailPassword.value = '';
-                    emailPassword.placeholder = '•••••••• (saved, enter new to change)';
                 } else {
-                    showToast('Error', data.error || 'Failed to save settings.', 'error');
+                    showToast('Error', data.error || 'Failed to save.', 'error');
                 }
             } catch (err) {
                 showToast('Connection Error', 'Could not reach the server.', 'error');
