@@ -9,11 +9,11 @@
   <img src="https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask&logoColor=white"/>
   <img src="https://img.shields.io/badge/Docker-Compatible-blue?style=for-the-badge&logo=docker&logoColor=white"/>
   <img src="https://img.shields.io/badge/Playwright-Bypass-green?style=for-the-badge&logo=playwright&logoColor=white"/>
-  <img src="https://img.shields.io/badge/WhatsApp-Alerts-25D366?style=for-the-badge&logo=whatsapp&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Email-Alerts-blue?style=for-the-badge&logo=gmail&logoColor=white"/>
 </p>
 
 <p align="center">
-  Track product prices across <strong>Amazon</strong>, <strong>Flipkart</strong>, and <strong>Snapdeal</strong> — all from a single sleek, professional dashboard. Get instant <strong>WhatsApp & Email alerts</strong> when prices drop to your target! 🔥
+  Track product prices across <strong>Amazon</strong>, <strong>Flipkart</strong>, and <strong>Snapdeal</strong> — all from a single sleek, professional dashboard. Get instant <strong>Email alerts</strong> when prices drop to your target! 🔥
 </p>
 
 ---
@@ -33,7 +33,7 @@
   </tr>
   <tr>
     <td width="50%" align="center">
-      <strong>💬 Multi-Channel Alert Settings</strong><br/>
+      <strong>✉️ Email Alert Settings</strong><br/>
       <img src="assets/alerts.png" alt="Alert Settings Screen" width="100%"/>
     </td>
     <td width="50%" align="center">
@@ -53,7 +53,6 @@
 | 🤖 **Auto-Detection** | Paste any product URL — platform is detected automatically |
 | 📈 **Price History** | Interactive Chart.js bezier-curve graphs showing price trends over time |
 | 📦 **Stock Alerts** | Dynamic available-to-out ratio bar meter and stock recovery alerts |
-| 💬 **WhatsApp Alerts** | Real-time WhatsApp notifications via Twilio REST API on price drops |
 | ✉️ **Email Alerts** | Custom SMTP email notifications (works with Gmail App Passwords) |
 | 🎨 **Premium UI** | Modern light-mode tech dashboard with left sidebar navigation tabs |
 | 🔄 **Auto Monitor** | Background thread scrapes all products at regular intervals |
@@ -103,16 +102,11 @@ Navigate to `http://localhost:5000` (Default credentials: **admin / admin**).
 
 ---
 
-## 📲 Notification Setup (Optional)
+## ✉️ Notification Setup (Optional)
 
-Configure your alert channels directly inside the **"Alert Settings"** tab in the sidebar:
+Configure your email alert channel directly inside the **"Alert Settings"** tab in the sidebar:
 
-### A. WhatsApp Setup (via Twilio Sandbox)
-1. Register a free account at [twilio.com](https://www.twilio.com).
-2. Go to **Messaging → Try WhatsApp** and opt-in by sending `join <sandbox-code>` from your WhatsApp.
-3. Paste your **Account SID**, **Auth Token**, **From number** (sandbox), and **Recipient number** in the Settings panel.
-
-### B. Email Setup (via SMTP / Gmail)
+### Email Setup (via SMTP / Gmail)
 1. Go to your Google Account Settings &rarr; Security.
 2. Enable **2-Step Verification**.
 3. Generate a 16-character **App Password** for "Mail".
@@ -150,7 +144,7 @@ pricepulse/
 - **Scraping:** Requests, BeautifulSoup4, Playwright Chromium (for anti-bot rendering)
 - **Database:** SQLite (via standard library `sqlite3`)
 - **Frontend:** HTML5, CSS3 Grid/Flexbox, Vanilla JS, Chart.js, Font Awesome
-- **Notifications:** Twilio REST API, SMTP SSL/TLS
+- **Notifications:** SMTP SSL/TLS
 
 ---
 
