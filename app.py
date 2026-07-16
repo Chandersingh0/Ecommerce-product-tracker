@@ -42,105 +42,6 @@ activity_logs = deque(maxlen=200)
 monitor_running = False
 monitor_thread = None
 
-# ═══════════════════════════════════════════════════════════════
-# WhatsApp Notification Config (Twilio)
-# ═══════════════════════════════════════════════════════════════
-WHATSAPP_CONFIG_FILE = "whatsapp_config.json"
-
-DEFAULT_WHATSAPP_CONFIG = {
-    "enabled": False,
-    "account_sid": "",
-    "auth_token": "",
-    "from_number": "whatsapp:+14155238886",  # Twilio sandbox default
-    "to_number": "",                          # User's WhatsApp number with country code
-}
-
-
-def load_whatsapp_config(user_id):
-    """Load WhatsApp config from SQLite database."""
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT whatsapp_enabled as enabled, whatsapp_account_sid as account_sid,
-               whatsapp_auth_token as auth_token, whatsapp_from_number as from_number,
-               whatsapp_to_number as to_number FROM user_configs WHERE user_id=?
-    """, (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-
-    if row:
-        config = dict(row)
-        config["enabled"] = bool(config["enabled"])
-        return config
-    return DEFAULT_WHATSAPP_CONFIG.copy()
-
-
-def save_whatsapp_config(config, user_id):
-    """Save WhatsApp config to SQLite database."""
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE user_configs SET
-            whatsapp_enabled=?,
-            whatsapp_account_sid=?,
-            whatsapp_auth_token=?,
-            whatsapp_from_number=?,
-            whatsapp_to_number=?
-        WHERE user_id=?
-    """, (
-        1 if config.get("enabled") else 0,
-        config.get("account_sid", ""),
-        config.get("auth_token", ""),
-        config.get("from_number", "whatsapp:+14155238886"),
-        config.get("to_number", ""),
-        user_id
-    ))
-    conn.commit()
-    conn.close()
-
-
-def send_whatsapp(message, user_id):
-    """Send a WhatsApp message via Twilio API for the specified user."""
-    config = load_whatsapp_config(user_id)
-
-    if not config.get("enabled"):
-        return False, "WhatsApp notifications are disabled."
-
-    sid = config.get("account_sid", "").strip()
-    token = config.get("auth_token", "").strip()
-    from_num = config.get("from_number", "").strip()
-    to_num = config.get("to_number", "").strip()
-
-    if not all([sid, token, from_num, to_num]):
-        return False, "WhatsApp config is incomplete."
-
-    # Ensure whatsapp: prefix
-    if not to_num.startswith("whatsapp:"):
-        to_num = f"whatsapp:{to_num}"
-    if not from_num.startswith("whatsapp:"):
-        from_num = f"whatsapp:{from_num}"
-
-    try:
-        # Use Twilio REST API directly (no twilio SDK needed)
-        url = f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
-        data = {
-            "From": from_num,
-            "To": to_num,
-            "Body": message,
-        }
-        response = requests.post(url, data=data, auth=(sid, token), timeout=15)
-
-        if response.status_code in (200, 201):
-            log_user_activity(user_id, f"WhatsApp sent: {message[:60]}...", "ALERT")
-            return True, "Message sent successfully."
-        else:
-            error_msg = response.json().get("message", response.text[:200])
-            log_user_activity(user_id, f"WhatsApp send failed: {error_msg}", "ERROR")
-            return False, error_msg
-
-    except Exception as e:
-        log_activity(f"WhatsApp error: {str(e)}", "ERROR")
-        return False, str(e)
 
 # ═══════════════════════════════════════════════════════════════
 # Email Notification Config (Simplified)
@@ -315,9 +216,7 @@ def create_scraper():
     return session
 
 
-# ═══════════════════════════════════════════════════════════════
 # Playwright Browser Manager (for Amazon)
-# ═══════════════════════════════════════════════════════════════
 _pw_lock = threading.Lock()
 _pw_instance = None     # Playwright context manager
 _pw_browser = None      # Browser instance
@@ -407,11 +306,6 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_configs (
             user_id INTEGER PRIMARY KEY,
-            whatsapp_enabled INTEGER DEFAULT 0,
-            whatsapp_account_sid TEXT DEFAULT '',
-            whatsapp_auth_token TEXT DEFAULT '',
-            whatsapp_from_number TEXT DEFAULT 'whatsapp:+14155238886',
-            whatsapp_to_number TEXT DEFAULT '',
             email_enabled INTEGER DEFAULT 0,
             email_smtp_server TEXT DEFAULT 'smtp.gmail.com',
             email_smtp_port INTEGER DEFAULT 587,
@@ -1317,8 +1211,7 @@ def monitor_loop():
                     if price <= target and in_stock:
                         alert_msg = f"🔥 {name} dropped to ₹{price:,.2f} (target: ₹{target:,.2f})!"
                         log_user_activity(uid, f"ALERT: {alert_msg}", "ALERT")
-                        # Send notifications
-                        send_whatsapp(f"💰 PricePulse Alert!\n\n{alert_msg}\n\n🔗 {url}", uid)
+                        # Send email notification
                         send_email(
                             f"Price Drop: {name}",
                             f"{alert_msg}\n\nProduct: {name}\nLink: {url}",
@@ -1340,8 +1233,7 @@ def monitor_loop():
                     if prev and prev["stock"] == 0:
                         stock_msg = f"✅ {name} is back in stock!"
                         log_user_activity(uid, f"ALERT: {stock_msg}", "ALERT")
-                        # Send notifications
-                        send_whatsapp(f"📦 PricePulse Alert!\n\n{stock_msg}\n\n🔗 {url}", uid)
+                        # Send email notification
                         send_email(
                             f"Back In Stock: {name}",
                             f"{stock_msg}\n\nProduct: {name}\nLink: {url}",
@@ -1569,7 +1461,6 @@ def scrape_single_product_background(product_id, user_id, name, url, target_pric
             if price <= target_price and in_stock:
                 alert_msg = f"🔥 {name} dropped to ₹{price:,.2f} (target: ₹{target_price:,.2f})!"
                 log_user_activity(user_id, f"ALERT: {alert_msg}", "ALERT")
-                send_whatsapp(f"💰 PricePulse Alert!\n\n{alert_msg}\n\n🔗 {url}", user_id)
                 send_email(
                     f"Price Drop: {name}",
                     f"{alert_msg}\n\nProduct: {name}\nLink: {url}",
@@ -1801,62 +1692,6 @@ def api_stats():
     })
 
 
-# ═══════════════════════════════════════════════════════════════
-# Flask Routes — WhatsApp Settings API
-# ═══════════════════════════════════════════════════════════════
-@app.route("/api/whatsapp/config", methods=["GET"])
-@login_required
-def api_get_whatsapp_config():
-    """Get current WhatsApp notification settings for the logged-in user (token masked)."""
-    uid = session["user_id"]
-    config = load_whatsapp_config(uid)
-    # Mask sensitive fields for the frontend
-    safe_config = {
-        "enabled": config.get("enabled", False),
-        "account_sid": config.get("account_sid", ""),
-        "auth_token_set": bool(config.get("auth_token", "")),
-        "from_number": config.get("from_number", ""),
-        "to_number": config.get("to_number", ""),
-    }
-    return jsonify(safe_config)
-
-
-@app.route("/api/whatsapp/config", methods=["POST"])
-@login_required
-def api_save_whatsapp_config():
-    """Save WhatsApp notification settings for the logged-in user."""
-    data = request.get_json()
-    uid = session["user_id"]
-
-    config = load_whatsapp_config(uid)
-    config["enabled"] = data.get("enabled", config["enabled"])
-    config["account_sid"] = data.get("account_sid", config["account_sid"])
-    if data.get("auth_token"):  # Only update if provided (not masked)
-        config["auth_token"] = data["auth_token"]
-    config["from_number"] = data.get("from_number", config["from_number"])
-    config["to_number"] = data.get("to_number", config["to_number"])
-
-    save_whatsapp_config(config, uid)
-    log_user_activity(uid, f"WhatsApp settings updated. Notifications {'enabled' if config['enabled'] else 'disabled'}.", "ALERT")
-
-    return jsonify({"success": True})
-
-
-@app.route("/api/whatsapp/test", methods=["POST"])
-@login_required
-def api_test_whatsapp():
-    """Send a test WhatsApp message for the logged-in user."""
-    uid = session["user_id"]
-    config = load_whatsapp_config(uid)
-    if not config.get("enabled"):
-        return jsonify({"success": False, "error": "WhatsApp notifications are disabled. Enable them first."})
-
-    success, message = send_whatsapp(
-        "🧪 PricePulse Test Message\n\nYour WhatsApp notifications are working! "
-        "You'll receive alerts when tracked product prices drop below your target.",
-        uid
-    )
-    return jsonify({"success": success, "message": message})
 
 
 # ═══════════════════════════════════════════════════════════════
